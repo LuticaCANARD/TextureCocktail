@@ -25,7 +25,7 @@ namespace LuticaLab.TextureCocktail
         string[] _shaderKeys;
         private MethodInfo _getShaderKeywordsMethod;
         private bool _shaderOptionOnOff = false;
-        private TectureCocktailContent _shaderWindow;
+        private TextureCocktailContent _shaderWindow;
         private bool _shaderChanged = false;
         private readonly Dictionary<string,bool> _keywordOnOff = new Dictionary<string, bool>();
         const string _mainTexProperty = "_MainTex";
@@ -291,7 +291,7 @@ namespace LuticaLab.TextureCocktail
         ///     window script most be in LuticaLab.TextureCocktail namespace
         /// </param>
         /// <returns></returns>
-        private TectureCocktailContent LoadShaderWindow(string shaderName)
+        private TextureCocktailContent LoadShaderWindow(string shaderName)
         {
             var foundType = Type.GetType("LuticaLab.TextureCocktail." + shaderName);
             if (foundType == null)
@@ -299,14 +299,14 @@ namespace LuticaLab.TextureCocktail
                 Debug.LogWarning($"Shader window type '{shaderName}' not found. Ensure it is in the correct namespace and assembly.");
                 return null;
             }
-            if (foundType.IsSubclassOf(typeof(TectureCocktailContent)))
+            if (foundType.IsSubclassOf(typeof(TextureCocktailContent)))
             {
-                var shaderWindow = (TectureCocktailContent)CreateInstance(foundType);
+                var shaderWindow = (TextureCocktailContent)CreateInstance(foundType);
                 return shaderWindow;
             }
             else
             {
-                Debug.LogWarning($"Shader window type '{shaderName}' is not a subclass of TectureCocktailContent.");
+                Debug.LogWarning($"Shader window type '{shaderName}' is not a subclass of TextureCocktailContent.");
                 return null;
             }
         }

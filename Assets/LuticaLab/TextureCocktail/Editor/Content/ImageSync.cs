@@ -12,7 +12,7 @@ namespace LuticaLab.TextureCocktail
         Sub,
         Mul
     }
-    public class ImageSync : TectureCocktailContent
+    public class ImageSync : TextureCocktailContent
     {
         public override bool UseDefaultLayout { get => false; }
         public override string[] DontWantDisplayPropertyName { get => new string[] { "_BlendOp" }; }

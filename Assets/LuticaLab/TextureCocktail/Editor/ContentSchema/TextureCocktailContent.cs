@@ -4,7 +4,7 @@ using UnityEditor;
 using UnityEngine;
 namespace LuticaLab.TextureCocktail
 {
-    public abstract class TectureCocktailContent : EditorWindow
+    public abstract class TextureCocktailContent : EditorWindow
     {
         protected Vector2 scrollPosition;
         protected TextureCocktail baseWindow;
