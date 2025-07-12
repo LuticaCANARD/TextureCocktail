@@ -1,13 +1,13 @@
 {
-  "name": "com.vrchat.demo-template",
-  "displayName": "VRChat Example Package",
-  "version": "0.0.7",
+  "name": "Luticalab.TextureCocktail",
+  "displayName": "TextureCocktail",
+  "version": "0.0.1",
   "unity": "2022.3",
-  "description": "Simple Package for testing Automation",
+  "description": "HLSL 2D Image Edit Runtime Library for Unity",
   "vrchatVersion": "2022.1.1",
   "author": {
-    "name": "Momo the Monster",
-    "email": "momodmonster@gmail.com",
-    "url": "https://mmmlabs.com"
+    "name": "Lutica_CANARD",
+    "email": "contact@luticalab.dev",
+    "url": "http://skid-lab.luticalab.net/"
   }
 }
