@@ -1,6 +1,6 @@
 # Texture Cocktail
 
-> compact, flexable, fast Texture Editor for edit on non-stop
+> compact, flexable, fast Texture Editor for edit on non-stop      
 > sub-project of SKID-Project
 
 ## How To use?
@@ -13,7 +13,6 @@
 
 - you can provide your `Shader` and optional `Editor Script`
 - `Editor Script` Class name and `Shader` name MOST be same name.
-- `Editor Script` most written on `Assets/LuticaLab/TextureCocktail/Editor/Content`
 - `Editor Script` most inherit `TextureCocktailContent` and namespace most on `LuticaLab.TextureCocktail`
 
 ## Usable Editor
