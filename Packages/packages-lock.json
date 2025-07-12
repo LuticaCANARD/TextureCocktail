@@ -105,8 +105,8 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2"
       }
     },
-    "Luticalab.TextureCocktail": {
-      "version": "file:Luticalab.TextureCocktail",
+    "luticalab.texturecocktail": {
+      "version": "file:luticalab.texturecocktail",
       "depth": 0,
       "source": "embedded",
       "dependencies": {}
