@@ -1,6 +1,6 @@
 import { baseLayerLuminance, StandardLuminance } from 'https://unpkg.com/@fluentui/web-components';
 
-const LISTING_URL = "skid-cocktail.luticalab.dev";
+const LISTING_URL = "https://skid-cocktail.luticalab.dev/index.json";
 
 const PACKAGES = {
 {{~ for package in packages ~}}
