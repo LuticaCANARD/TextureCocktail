@@ -18,7 +18,7 @@ Shader "Hidden/ImageFilter"
             #pragma fragment frag
 
             #include "UnityCG.cginc"
-            #include "Assets/LuticaLab/Shader/HLSL/CanarinUtilCore.hlsl"
+            #include "Packages/luticalab.core/Shader/HLSL/CanarinUtilCore.hlsl"
             struct appdata
             {
                 float4 vertex : POSITION;

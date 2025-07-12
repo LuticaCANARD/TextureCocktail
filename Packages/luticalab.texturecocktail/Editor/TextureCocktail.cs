@@ -210,9 +210,6 @@ namespace LuticaLab.TextureCocktail
                 RenderTexture.active = _preview;
                 Graphics.Blit(_targetTexture, _preview, _calcMaterial);
                 RenderTexture.active = null;
-                Debug.Log(
-                   LanguageDisplayer.Instance.GetTranslatedLanguage("apply_shader_execute_success")
-                );
             }
             else
             {

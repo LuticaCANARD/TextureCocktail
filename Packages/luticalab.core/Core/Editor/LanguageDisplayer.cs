@@ -53,7 +53,7 @@ namespace LuticaLab
         }
         void LoadLanguageDict(LuticaLabSupportLanguage lang)
         {
-            var jsonload = AssetDatabase.LoadAssetAtPath($"Assets/LuticaLab/Languages/{lang}.json", typeof(TextAsset)) as TextAsset;
+            var jsonload = AssetDatabase.LoadAssetAtPath($"Packages/luticalab.core/Languages/{lang}.json", typeof(TextAsset)) as TextAsset;
             if (jsonload != null)
             {
 
