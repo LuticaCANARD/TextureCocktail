@@ -105,8 +105,8 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2"
       }
     },
-    "com.vrchat.demo-template": {
-      "version": "file:com.vrchat.demo-template",
+    "Luticalab.TextureCocktail": {
+      "version": "file:Luticalab.TextureCocktail",
       "depth": 0,
       "source": "embedded",
       "dependencies": {}
