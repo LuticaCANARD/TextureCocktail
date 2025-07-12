@@ -30,6 +30,7 @@ jobs:
     permissions:
       contents: write
     env:
+      corePath: Packages/${{ vars.PACKAGE_NAME_CORE }}
       packagePath: Packages/${{ vars.PACKAGE_NAME }}
     if: needs.config.outputs.config_package == 'true'
     steps:
@@ -50,17 +51,24 @@ jobs:
       - name: Set Environment Variables
         run: |
           echo "zipFile=${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}".zip >> $GITHUB_ENV
+          echo "coreZipFile=${{ vars.PACKAGE_NAME_CORE }}-${{ steps.version.outputs.value }}.zip" >> $GITHUB_ENV
           echo "unityPackage=${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}.unitypackage" >> $GITHUB_ENV
           echo "version=${{ steps.version.outputs.value }}" >> $GITHUB_ENV
+          echo "corePath=${{ env.corePath }}" >> $GITHUB_ENV
 
       # Zip the Package for release
       - name: Create Package Zip
         working-directory: "${{ env.packagePath }}"
         run: zip -r "${{ github.workspace }}/${{ env.zipFile }}" .
+      - name: Create Core Package Zip
+        working-directory: "${{ env.corePath }}"
+        run: zip -r "${{ github.workspace }}/${{ env.coreZipFile }}" .
       
       # Build a list of .meta files for future use
       - name: Track Package Meta Files
         run: find "${{ env.packagePath }}/" -name \*.meta >> metaList
+      - name: Track Core Package Meta Files
+        run: find "${{ env.corePath }}/" -name \*.meta >> metaList
       
       # Make a UnityPackage version of the Package for release
       - name: Create UnityPackage
@@ -82,6 +90,7 @@ jobs:
         with:
           files: |
             ${{ env.zipFile }}
+            ${{ env.coreZipFile }}
             ${{ env.unityPackage }}
             ${{ env.packagePath }}/package.json
           tag_name: ${{ env.version }}
