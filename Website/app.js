@@ -1,7 +1,4 @@
 import { baseLayerLuminance, StandardLuminance } from 'https://unpkg.com/@fluentui/web-components';
-
-const LISTING_URL = "skid-cocktail.luticalab.dev";
-
 const PACKAGES = {
 {{~ for package in packages ~}}
   "{{ package.Name }}": {
@@ -88,7 +85,7 @@ const setTheme = () => {
   });
 
   const vccAddRepoButton = document.getElementById('vccAddRepoButton');
-  vccAddRepoButton.addEventListener('click', () => window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent(LISTING_URL)}`));
+  vccAddRepoButton.addEventListener('click', () => window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent("https://skid-cocktail.luticalab.dev/index.json")}`));
 
   const vccUrlFieldCopy = document.getElementById('vccUrlFieldCopy');
   vccUrlFieldCopy.addEventListener('click', () => {
@@ -155,7 +152,7 @@ const setTheme = () => {
 
   const rowAddToVccButtons = document.querySelectorAll('.rowAddToVccButton');
   rowAddToVccButtons.forEach((button) => {
-    button.addEventListener('click', () => window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent(LISTING_URL)}`));
+    button.addEventListener('click', () => window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent("https://skid-cocktail.luticalab.dev/index.json")}`));
   });
 
   const rowPackageInfoButton = document.querySelectorAll('.rowPackageInfoButton');
