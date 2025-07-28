@@ -1,7 +1,7 @@
 {
   "name": "luticalab.core",
   "displayName": "Lutica Lab Core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "unity": "2022.3",
   "description": "LuticaLab Core Library for Unity",
   "vrchatVersion": "2022.1.1",
