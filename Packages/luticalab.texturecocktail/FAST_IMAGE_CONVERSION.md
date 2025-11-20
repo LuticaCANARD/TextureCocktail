@@ -193,6 +193,29 @@ Language files are located in:
 - GPU compute shader implementations for even faster processing
 - Machine learning-based feature extraction
 
+## Image Viewer Window
+
+### Overview
+Click on any preview image to open it in a dedicated viewer window for detailed inspection.
+
+### Features
+- **Click-to-View**: Click preview images to open full-size viewer
+- **Fit to Window**: Auto-scales images to fit the window
+- **Zoom Controls**: 10% to 400% zoom with slider and +/- buttons
+- **Pan & Navigate**: Scroll and drag to explore large images
+- **Quick Access**: "View" button next to target texture field
+
+### Usage
+1. Hover over any preview image to see "Click to view full size" hint
+2. Click the preview to open viewer window
+3. Toggle "Fit to Window" or use zoom controls
+4. Click and drag to pan when zoomed in
+5. View original texture using "View" button
+
+### Keyboard Controls
+- Use zoom slider or +/- buttons to adjust zoom level
+- Toggle "Fit to Window" for automatic scaling
+
 ## Credits
 
 Developed for Texture Cocktail by LuticaLab
