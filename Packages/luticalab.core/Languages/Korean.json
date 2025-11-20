@@ -121,6 +121,15 @@
         "effect_halftone_desc": "하프톤 - 인쇄 도트 패턴을 시뮬레이션합니다.",
         "effect_oilpaint_desc": "오일 페인트 - 회화 같은 효과를 만듭니다.",
         "effect_emboss_desc": "엠보스 - 입체적인 3D 효과를 만듭니다.",
-        "effect_cartoon_desc": "카툰 - 엣지 검출이 있는 셀 셰이딩 만화 스타일."
+        "effect_cartoon_desc": "카툰 - 엣지 검출이 있는 셀 셰이딩 만화 스타일.",
+        
+        "view": "보기",
+        "click_to_view_fullsize": "클릭하여 전체 크기로 보기",
+        "no_preview_available": "미리보기를 사용할 수 없습니다",
+        "no_image_to_display": "표시할 이미지가 없습니다",
+        "fit_to_window": "창에 맞춤",
+        "zoom": "확대/축소",
+        "reset_zoom": "초기화",
+        "image_viewer_help": "확대된 상태에서 클릭하고 드래그하여 이동할 수 있습니다. 확대/축소 슬라이더 또는 +/- 버튼을 사용하여 확대 수준을 조정하세요."
     }
 }

@@ -122,7 +122,16 @@
             "effect_halftone_desc": "Halftone - simulates printing dot pattern.",
             "effect_oilpaint_desc": "Oil Paint - creates painterly effect.",
             "effect_emboss_desc": "Emboss - creates raised 3D effect.",
-            "effect_cartoon_desc": "Cartoon - cell-shaded cartoon style with edge detection."
+            "effect_cartoon_desc": "Cartoon - cell-shaded cartoon style with edge detection.",
+            
+            "view": "View",
+            "click_to_view_fullsize": "Click to view full size",
+            "no_preview_available": "No preview available",
+            "no_image_to_display": "No image to display",
+            "fit_to_window": "Fit to Window",
+            "zoom": "Zoom",
+            "reset_zoom": "Reset",
+            "image_viewer_help": "Click and drag to pan when zoomed. Use zoom slider or +/- buttons to adjust zoom level."
         }
     
 }

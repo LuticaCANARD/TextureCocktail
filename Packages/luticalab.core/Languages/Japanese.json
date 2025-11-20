@@ -125,7 +125,16 @@
         "effect_halftone_desc": "ハーフトーン - 印刷ドットパターンをシミュレートします。",
         "effect_oilpaint_desc": "オイルペイント - 絵画的な効果を作成します。",
         "effect_emboss_desc": "エンボス - 浮き彫りの3D効果を作成します。",
-        "effect_cartoon_desc": "カートゥーン - エッジ検出付きのセルシェーディングカートゥーンスタイル。"
+        "effect_cartoon_desc": "カートゥーン - エッジ検出付きのセルシェーディングカートゥーンスタイル。",
+        
+        "view": "表示",
+        "click_to_view_fullsize": "クリックしてフルサイズで表示",
+        "no_preview_available": "プレビューは利用できません",
+        "no_image_to_display": "表示する画像がありません",
+        "fit_to_window": "ウィンドウに合わせる",
+        "zoom": "ズーム",
+        "reset_zoom": "リセット",
+        "image_viewer_help": "ズームインした状態でクリックしてドラッグするとパンできます。ズームスライダーまたは+/-ボタンを使用してズームレベルを調整します。"
     }
     
 }

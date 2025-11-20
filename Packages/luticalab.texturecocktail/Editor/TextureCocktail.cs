@@ -36,8 +36,22 @@ namespace LuticaLab.TextureCocktail
             var changed = (Shader)EditorGUILayout.ObjectField(
                 LanguageDisplayer.Instance.GetTranslatedLanguage("apply_shader"), _shader, typeof(Shader), false);
             OnShaderChange(changed);
+            
+            // Target texture field with view button
+            EditorGUILayout.BeginHorizontal();
             var changedTexture = (Texture2D)EditorGUILayout.ObjectField(
                 LanguageDisplayer.Instance.GetTranslatedLanguage("target_texture"), _targetTexture, typeof(Texture2D), false);
+            
+            // Add a button to view the original texture
+            if (_targetTexture != null)
+            {
+                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("view"), GUILayout.Width(50)))
+                {
+                    ImageViewerWindow.ShowWindow(_targetTexture, _targetTexture.name);
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+            
             OnTextureChanged(changedTexture);
 
             if (_valueChanged)
@@ -54,7 +68,39 @@ namespace LuticaLab.TextureCocktail
         //------------- APIs -------------
         public void DisplayPassedIamge()
         {
-            GUILayout.Box(_preview, GUILayout.Width(200), GUILayout.Height(200));
+            // Create a clickable image preview
+            Rect previewRect = GUILayoutUtility.GetRect(200, 200);
+            
+            if (_preview != null)
+            {
+                // Draw the preview texture
+                GUI.DrawTexture(previewRect, _preview, ScaleMode.ScaleToFit);
+                
+                // Make it clickable
+                if (GUI.Button(previewRect, "", GUIStyle.none))
+                {
+                    // Open image viewer window when clicked
+                    ImageViewerWindow.ShowWindow(_preview, _targetTexture != null ? _targetTexture.name + " - Preview" : "Preview");
+                }
+                
+                // Add a subtle border
+                GUI.Box(previewRect, "", EditorStyles.helpBox);
+                
+                // Show click hint on hover
+                if (previewRect.Contains(Event.current.mousePosition))
+                {
+                    EditorGUI.DrawRect(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
+                        new Color(0, 0, 0, 0.7f));
+                    GUI.Label(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
+                        LanguageDisplayer.Instance.GetTranslatedLanguage("click_to_view_fullsize"), 
+                        new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, normal = new GUIStyleState { textColor = Color.white } });
+                    Repaint();
+                }
+            }
+            else
+            {
+                GUI.Box(previewRect, LanguageDisplayer.Instance.GetTranslatedLanguage("no_preview_available"));
+            }
         }
         public void DisplayShaderOptions()
         {
