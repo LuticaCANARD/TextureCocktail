@@ -240,8 +240,20 @@ namespace LuticaLab.TextureCocktail
         }
         public void SetMaterialKeyword(string keyword, bool value)
         {
-            if (_keywordOnOff.ContainsKey(keyword)) _keywordOnOff[keyword] = value;
-            this.ApplyShaderDict(keyword);
+            // Update dictionary if keyword exists in it
+            if (_keywordOnOff.ContainsKey(keyword))
+            {
+                _keywordOnOff[keyword] = value;
+            }
+            
+            // Always apply to material if material exists
+            if (_calcMaterial != null)
+            {
+                if (value)
+                    _calcMaterial.EnableKeyword(keyword);
+                else
+                    _calcMaterial.DisableKeyword(keyword);
+            }
         }
         public void CompileShader()
         {
@@ -293,6 +305,9 @@ namespace LuticaLab.TextureCocktail
         }
         private void ApplyShaderDict(string keyword)
         {
+            if (!_keywordOnOff.ContainsKey(keyword))
+                return;
+                
             if (_keywordOnOff[keyword]) _calcMaterial.EnableKeyword(keyword);
             else _calcMaterial.DisableKeyword(keyword);
         }
