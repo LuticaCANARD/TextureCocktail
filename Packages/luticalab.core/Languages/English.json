@@ -48,7 +48,40 @@
             "save_texture": "Save Texture",
             "save_texture_success": "Texture saved successfully at : {0}",
             "material_is_not_created": "Material is not created.",
-            "unsupported_property": "Unsupported property"
+            "unsupported_property": "Unsupported property",
+            
+            "fast_image_converter_title": "Fast Image Converter",
+            "quick_presets": "Quick Presets",
+            "filter_mode": "Filter Mode",
+            "filter_type": "Filter Type",
+            "filter_none_desc": "No filter applied. Use basic adjustments only.",
+            "filter_edge_desc": "Detects edges in the image using Sobel operator.",
+            "filter_blur_desc": "Applies box blur to smooth the image.",
+            "filter_sharpen_desc": "Enhances edges and details in the image.",
+            "basic_adjustments": "Basic Adjustments",
+            "preview": "Preview",
+            "apply_quick": "Apply",
+            
+            "feature_extractor_title": "Feature Extractor",
+            "extraction_mode": "Feature Extraction Mode",
+            "mode": "Mode",
+            "mode_edge_desc": "Sobel edge detection - detects edges using gradient calculation.",
+            "mode_canny_desc": "Canny edge detection - more advanced edge detection with Gaussian blur.",
+            "mode_color_seg_desc": "Color segmentation - quantizes colors for analysis.",
+            "mode_histogram_desc": "Histogram enhancement - improves contrast through histogram equalization.",
+            "extraction_settings": "Extraction Settings",
+            "analysis_channel": "Analysis Channel",
+            "channel": "Channel",
+            "histogram_view": "Histogram Visualization",
+            "advanced_settings": "Advanced Settings",
+            "edge_detection_settings": "Edge Detection Settings",
+            "edge_sensitivity_help": "Adjust edge sensitivity. Lower values detect more edges.",
+            "color_segmentation_settings": "Color Segmentation Settings",
+            "color_threshold_help": "Adjust color quantization level. Higher values create fewer color regions.",
+            "histogram_settings": "Histogram Settings",
+            "histogram_help": "Enhances image contrast by redistributing pixel intensity values.",
+            "histogram": "Histogram",
+            "histogram_not_available": "Histogram not available. Click Apply to generate."
         }
     
 }

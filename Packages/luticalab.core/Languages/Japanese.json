@@ -51,7 +51,40 @@
         "save_texture": "テクスチャを保存",
         "save_texture_success": "テクスチャが正常に保存されました: {0}",
         "material_is_not_created": "マテリアルが作成されていません。",
-        "unsupported_property": "サポートされていないプロパティ"
+        "unsupported_property": "サポートされていないプロパティ",
+        
+        "fast_image_converter_title": "高速画像変換",
+        "quick_presets": "クイックプリセット",
+        "filter_mode": "フィルターモード",
+        "filter_type": "フィルタータイプ",
+        "filter_none_desc": "フィルターが適用されていません。基本調整のみを使用します。",
+        "filter_edge_desc": "Sobel演算子を使用して画像のエッジを検出します。",
+        "filter_blur_desc": "画像を滑らかにするためにボックスブラーを適用します。",
+        "filter_sharpen_desc": "画像のエッジとディテールを強化します。",
+        "basic_adjustments": "基本調整",
+        "preview": "プレビュー",
+        "apply_quick": "適用",
+        
+        "feature_extractor_title": "特徴抽出",
+        "extraction_mode": "特徴抽出モード",
+        "mode": "モード",
+        "mode_edge_desc": "Sobelエッジ検出 - 勾配計算を使用してエッジを検出します。",
+        "mode_canny_desc": "Cannyエッジ検出 - ガウシアンブラーを使用した高度なエッジ検出。",
+        "mode_color_seg_desc": "カラーセグメンテーション - 分析のために色を量子化します。",
+        "mode_histogram_desc": "ヒストグラム強化 - ヒストグラム平坦化によってコントラストを改善します。",
+        "extraction_settings": "抽出設定",
+        "analysis_channel": "分析チャンネル",
+        "channel": "チャンネル",
+        "histogram_view": "ヒストグラム可視化",
+        "advanced_settings": "詳細設定",
+        "edge_detection_settings": "エッジ検出設定",
+        "edge_sensitivity_help": "エッジの感度を調整します。低い値ほど多くのエッジを検出します。",
+        "color_segmentation_settings": "カラーセグメンテーション設定",
+        "color_threshold_help": "色の量子化レベルを調整します。高い値ほど少ない色領域を作成します。",
+        "histogram_settings": "ヒストグラム設定",
+        "histogram_help": "ピクセル強度値を再分配して画像のコントラストを強化します。",
+        "histogram": "ヒストグラム",
+        "histogram_not_available": "ヒストグラムは利用できません。適用をクリックして生成してください。"
     }
     
 }
