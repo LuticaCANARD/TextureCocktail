@@ -47,7 +47,7 @@ namespace LuticaLab.TextureCocktail
         private void InitializeHistogram()
         {
             histogramTexture = new Texture2D(256, 100, TextureFormat.RGBA32, false);
-            histogramTexture.filterMode = FilterMode.Point;
+            histogramTexture.filterMode = (UnityEngine.FilterMode)FilterMode.Point;
         }
         
         public override void OnGUI()
