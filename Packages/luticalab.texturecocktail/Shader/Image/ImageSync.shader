@@ -1,4 +1,4 @@
-Shader "Hidden/ImageSync"
+Shader "Luticalab/ImageSync"
 {
     Properties
     {

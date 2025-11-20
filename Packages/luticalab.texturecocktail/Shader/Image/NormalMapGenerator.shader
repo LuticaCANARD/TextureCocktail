@@ -1,4 +1,4 @@
-Shader "Hidden/NormalMapGenerator"
+Shader "Luticalab/NormalMapGenerator"
 {
     Properties
     {

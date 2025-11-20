@@ -1,4 +1,4 @@
-Shader "Hidden/ImageEffect"
+Shader "Luticalab/ImageEffect"
 {
     Properties
     {
