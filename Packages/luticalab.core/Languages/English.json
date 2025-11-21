@@ -131,7 +131,20 @@
             "fit_to_window": "Fit to Window",
             "zoom": "Zoom",
             "reset_zoom": "Reset",
-            "image_viewer_help": "Click and drag to pan when zoomed. Use zoom slider or +/- buttons to adjust zoom level."
+            "image_viewer_help": "Click and drag to pan when zoomed. Use zoom slider or +/- buttons to adjust zoom level.",
+            
+            "hsv_mover_title": "HSV Color Adjustment",
+            "hsv_mover_desc": "Adjust Hue, Saturation, and Value (Brightness) of your image. Convert shifts colors, Offset adds to existing colors.",
+            "hsv_convert": "HSV Convert",
+            "hsv_convert_help": "Convert adjusts HSV values directly. Use this for color shifting and toning.",
+            "hsv_offset": "HSV Offset",
+            "hsv_offset_help": "Offset adds to existing HSV values. Use this for fine-tuning after convert.",
+            "hue_convert": "Hue Convert",
+            "saturation_convert": "Saturation Convert",
+            "value_convert": "Value (Brightness) Convert",
+            "hue_offset": "Hue Offset",
+            "saturation_offset": "Saturation Offset",
+            "value_offset": "Value (Brightness) Offset"
         }
     
 }
