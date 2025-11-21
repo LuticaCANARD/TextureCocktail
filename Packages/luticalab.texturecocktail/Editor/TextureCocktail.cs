@@ -448,7 +448,7 @@ namespace LuticaLab.TextureCocktail
             }
             _valueChanged = true;
         }
-        private void OnShaderValueChange()
+        public void OnShaderValueChange()
         {
             _valueChanged = false;
             if (_calcMaterial != null)
