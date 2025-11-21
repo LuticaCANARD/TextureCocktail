@@ -198,10 +198,10 @@ namespace LuticaLab.TextureCocktail
             }
             
             EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("edge_sensitivity_help"), MessageType.None);
-            
+
             if (EditorGUI.EndChangeCheck())
             {
-                baseWindow.OnShaderValueChange();
+                this.OnShaderValueChanged();
             }
         }
         
@@ -222,10 +222,10 @@ namespace LuticaLab.TextureCocktail
             }
             
             EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("color_threshold_help"), MessageType.None);
-            
+
             if (EditorGUI.EndChangeCheck())
             {
-                baseWindow.OnShaderValueChange();
+                this.OnShaderValueChanged();
             }
         }
         
@@ -246,6 +246,7 @@ namespace LuticaLab.TextureCocktail
             // Get source and preview textures
             var sourceTex = GetSourceTexture();
             var preview = GetPreviewTexture();
+
             if (sourceTex == null || preview == null)
             {
                 baseWindow.CompileShader();
@@ -258,7 +259,7 @@ namespace LuticaLab.TextureCocktail
             // Pass 2: Color Segmentation
             // Pass 3: Histogram Enhancement
             int pass = (int)extractionMode;
-            
+
             // Render using the specific pass
             Graphics.Blit(sourceTex, preview, material, pass);
         }
