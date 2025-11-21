@@ -17,6 +17,8 @@ namespace LuticaLab.TextureCocktail
         public virtual void OnValuepdate() { }
         public abstract void OnShaderValueChanged();
         public abstract void OnGUI();
+        public virtual bool ShaderUpdateDefaultAction { get { return true; } }
+        public virtual int PassOrder { get => 0; }
 
     }
 
