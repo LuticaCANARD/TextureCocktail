@@ -193,7 +193,12 @@ namespace LuticaLab.TextureCocktail
                     break;
                     
                 case FilterMode.EdgeDetection:
-                    // Edge detection doesn't have additional parameters
+                    if (material.HasProperty("_EdgeThreshold"))
+                    {
+                        float edgeThreshold = material.GetFloat("_EdgeThreshold");
+                        edgeThreshold = EditorGUILayout.Slider("Edge Threshold", edgeThreshold, 0, 1);
+                        material.SetFloat("_EdgeThreshold", edgeThreshold);
+                    }
                     break;
             }
             

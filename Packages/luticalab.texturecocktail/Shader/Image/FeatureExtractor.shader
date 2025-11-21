@@ -11,9 +11,6 @@ Shader "Hidden/FeatureExtractor"
         // Analysis mode
         _AnalysisChannel ("Analysis Channel (0=RGB, 1=R, 2=G, 3=B, 4=Luminance)", Int) = 0
         
-        // Histogram bins
-        _HistogramBins ("Histogram Bins", Int) = 256
-        
         // Feature visualization
         _FeatureIntensity ("Feature Intensity", Range(0, 2)) = 1
         _FeatureColor ("Feature Color", Color) = (1, 0, 0, 1)

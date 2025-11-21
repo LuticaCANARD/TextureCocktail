@@ -243,11 +243,24 @@ namespace LuticaLab.TextureCocktail
             var material = GetMaterial();
             if (material == null) return;
             
-            // Set the pass to use based on mode
-            // Note: Unity will use Pass 0 by default, but we could extend this
-            // to support multiple passes if needed
+            // Get source and preview textures
+            var sourceTex = GetSourceTexture();
+            var preview = GetPreviewTexture();
+            if (sourceTex == null || preview == null)
+            {
+                baseWindow.CompileShader();
+                return;
+            }
             
-            baseWindow.CompileShader();
+            // Select the correct pass based on extraction mode
+            // Pass 0: Edge Detection (Sobel)
+            // Pass 1: Canny Edge
+            // Pass 2: Color Segmentation
+            // Pass 3: Histogram Enhancement
+            int pass = (int)extractionMode;
+            
+            // Render using the specific pass
+            Graphics.Blit(sourceTex, preview, material, pass);
         }
         
         private void UpdateAnalysisChannel()
@@ -277,6 +290,14 @@ namespace LuticaLab.TextureCocktail
             var field = type.GetField("_preview", 
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             return field?.GetValue(baseWindow) as RenderTexture;
+        }
+        
+        private Texture GetSourceTexture()
+        {
+            var type = baseWindow.GetType();
+            var field = type.GetField("_targetTexture", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            return field?.GetValue(baseWindow) as Texture;
         }
         
         private void CalculateHistogram()

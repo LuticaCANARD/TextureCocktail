@@ -147,7 +147,7 @@ namespace LuticaLab.TextureCocktail
                     if (material.HasProperty("_ColorLevels"))
                     {
                         float colorLevels = material.GetFloat("_ColorLevels");
-                        colorLevels = EditorGUILayout.Slider("Color Levels", colorLevels, 2, 256);
+                        colorLevels = EditorGUILayout.Slider("Color Levels", colorLevels, 2, 20);
                         material.SetFloat("_ColorLevels", colorLevels);
                     }
                     break;
