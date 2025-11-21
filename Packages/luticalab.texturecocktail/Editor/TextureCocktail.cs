@@ -226,7 +226,7 @@ namespace LuticaLab.TextureCocktail
                         if (newColorValue != colorValue)
                         {
                             _calcMaterial.SetColor(propertyName, newColorValue);
-                            //_valueChanged = true;
+                            _valueChanged = true;
                         }
                         break;
                     case ShaderUtil.ShaderPropertyType.Float:
@@ -236,7 +236,7 @@ namespace LuticaLab.TextureCocktail
                         if (newFloatValue != floatValue)
                         {
                             _calcMaterial.SetFloat(propertyName, newFloatValue);
-                            //_valueChanged = true;
+                            _valueChanged = true;
                         }
                         break;
                     case ShaderUtil.ShaderPropertyType.Range:
@@ -246,7 +246,7 @@ namespace LuticaLab.TextureCocktail
                         if (newRangeValue != rangeValue)
                         {
                             _calcMaterial.SetFloat(propertyName, newRangeValue);
-                            //_valueChanged = true;
+                            _valueChanged = true;
                         }
                         break;
                     case ShaderUtil.ShaderPropertyType.Vector:
@@ -258,7 +258,7 @@ namespace LuticaLab.TextureCocktail
                         if (newVectorValue != vectorValue)
                         {
                             _calcMaterial.SetVector(propertyName, newVectorValue);
-                            //_valueChanged = true;
+                            _valueChanged = true;
                         }
                         break;
                     case ShaderUtil.ShaderPropertyType.TexEnv:
@@ -268,7 +268,7 @@ namespace LuticaLab.TextureCocktail
                         if (newTextureValue != textureValue)
                         {
                             _calcMaterial.SetTexture(propertyName, newTextureValue);
-                            //_valueChanged = true;
+                            _valueChanged = true;
                         }
                         break;
                     case ShaderUtil.ShaderPropertyType.Int:
@@ -279,7 +279,7 @@ namespace LuticaLab.TextureCocktail
                         if (newIntValue != intValue)
                         {
                             _calcMaterial.SetInt(propertyName, newIntValue);
-                            //_valueChanged = true;
+                            _valueChanged = true;
                         }
                         break;
                     default:
