@@ -199,6 +199,13 @@ namespace LuticaLab.TextureCocktail
                         edgeThreshold = EditorGUILayout.Slider("Edge Threshold", edgeThreshold, 0, 1);
                         material.SetFloat("_EdgeThreshold", edgeThreshold);
                     }
+                    if (material.HasProperty("_EdgeColor"))
+                    {
+                        Color edgeColor = material.GetColor("_EdgeColor");
+                        GUILayout.Label("Edge Color");
+                        edgeColor = EditorGUILayout.ColorField(edgeColor);
+                        material.SetColor("_EdgeColor", edgeColor);
+                    }
                     break;
             }
             

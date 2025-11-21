@@ -1,3 +1,4 @@
+using NUnit.Framework.Internal;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -25,8 +26,11 @@ namespace LuticaLab.TextureCocktail
     public class FeatureExtractor : TextureCocktailContent
     {
         public override bool UseDefaultLayout { get => false; }
+        public override bool ShaderUpdateDefaultAction { get => false; }
         public override string[] DontWantDisplayPropertyName { get => new string[] { "_AnalysisChannel" }; }
-        
+        private int _passOrder = 1;
+        public override int PassOrder { get => _passOrder; }
+
         private FeatureExtractionMode extractionMode = FeatureExtractionMode.EdgeDetection;
         private AnalysisChannel analysisChannel = AnalysisChannel.RGB;
         private bool _showSettings = true;
@@ -195,9 +199,18 @@ namespace LuticaLab.TextureCocktail
                 float sensitivity = material.GetFloat("_EdgeSensitivity");
                 sensitivity = EditorGUILayout.Slider("Edge Sensitivity", sensitivity, 0, 1);
                 material.SetFloat("_EdgeSensitivity", sensitivity);
+                EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("edge_sensitivity_help"), MessageType.None);
             }
-            
-            EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("edge_sensitivity_help"), MessageType.None);
+            if (material.HasProperty("_FeatureColor"))
+            {
+                Color color_ = material.GetColor("_FeatureColor");
+                color_ = EditorGUILayout.ColorField(color_);
+                GUILayout.Label("Feature Color");
+                material.SetColor("_FeatureColor", color_);
+                EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("edge_color_help"), MessageType.None);
+
+            }
+
 
             if (EditorGUI.EndChangeCheck())
             {
@@ -259,11 +272,14 @@ namespace LuticaLab.TextureCocktail
             // Pass 2: Color Segmentation
             // Pass 3: Histogram Enhancement
             int pass = (int)extractionMode;
-
+            _passOrder = pass;
             // Render using the specific pass
+            RenderTexture.active = preview;
             Graphics.Blit(sourceTex, preview, material, pass);
+            RenderTexture.active = null;
+
         }
-        
+
         private void UpdateAnalysisChannel()
         {
             var material = GetMaterial();

@@ -29,6 +29,11 @@ namespace LuticaLab.TextureCocktail
         private bool _shaderChanged = false;
         private readonly Dictionary<string,bool> _keywordOnOff = new Dictionary<string, bool>();
         const string _mainTexProperty = "_MainTex";
+
+        virtual protected bool ShaderUpdateDefaultAction
+        {
+            get => true;
+        }
         
         // Quick shader selection
         private static readonly string[] _quickShaderNames = new string[]
@@ -451,6 +456,12 @@ namespace LuticaLab.TextureCocktail
         public void OnShaderValueChange()
         {
             _valueChanged = false;
+
+            if(_shaderWindow != null && _shaderWindow.ShaderUpdateDefaultAction == false)
+            {
+                _shaderWindow.OnShaderValueChanged();
+                return;
+            }
             if (_calcMaterial != null)
             {
                 _calcMaterial.SetTexture(_mainTexProperty, _targetTexture);
