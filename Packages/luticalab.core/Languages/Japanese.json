@@ -134,7 +134,20 @@
         "fit_to_window": "ウィンドウに合わせる",
         "zoom": "ズーム",
         "reset_zoom": "リセット",
-        "image_viewer_help": "ズームインした状態でクリックしてドラッグするとパンできます。ズームスライダーまたは+/-ボタンを使用してズームレベルを調整します。"
+        "image_viewer_help": "ズームインした状態でクリックしてドラッグするとパンできます。ズームスライダーまたは+/-ボタンを使用してズームレベルを調整します。",
+        
+        "hsv_mover_title": "HSV色調整",
+        "hsv_mover_desc": "画像の色相(Hue)、彩度(Saturation)、明度(Value/Brightness)を調整します。Convertは色を変換し、Offsetは既存の色に追加します。",
+        "hsv_convert": "HSV変換",
+        "hsv_convert_help": "Convertは HSV値を直接調整します。色のシフトとトーン調整に使用してください。",
+        "hsv_offset": "HSVオフセット",
+        "hsv_offset_help": "Offsetは既存のHSV値に追加します。Convert後の微調整に使用してください。",
+        "hue_convert": "色相変換",
+        "saturation_convert": "彩度変換",
+        "value_convert": "明度(輝度)変換",
+        "hue_offset": "色相オフセット",
+        "saturation_offset": "彩度オフセット",
+        "value_offset": "明度(輝度)オフセット"
     }
     
 }

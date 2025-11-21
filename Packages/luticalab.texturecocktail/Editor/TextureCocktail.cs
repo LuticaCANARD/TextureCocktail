@@ -33,9 +33,24 @@ namespace LuticaLab.TextureCocktail
         {
             GUILayout.Label("TextureCocktail", EditorStyles.boldLabel);
 
-            var changed = (Shader)EditorGUILayout.ObjectField(
-                LanguageDisplayer.Instance.GetTranslatedLanguage("apply_shader"), _shader, typeof(Shader), false);
-            OnShaderChange(changed);
+            // Shader field - clickable when assigned, selectable when not
+            EditorGUILayout.BeginHorizontal();
+            if (_shader != null)
+            {
+                // Show as read-only label with click functionality
+                EditorGUILayout.LabelField(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_shader"), _shader.name);
+                if (GUILayout.Button("×", GUILayout.Width(20)))
+                {
+                    OnShaderChange(null);
+                }
+            }
+            else
+            {
+                var changed = (Shader)EditorGUILayout.ObjectField(
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("apply_shader"), _shader, typeof(Shader), false);
+                OnShaderChange(changed);
+            }
+            EditorGUILayout.EndHorizontal();
             
             // Target texture field with view button
             EditorGUILayout.BeginHorizontal();
@@ -76,17 +91,10 @@ namespace LuticaLab.TextureCocktail
                 // Draw the preview texture
                 GUI.DrawTexture(previewRect, _preview, ScaleMode.ScaleToFit);
                 
-                // Make it clickable
-                if (GUI.Button(previewRect, "", GUIStyle.none))
-                {
-                    // Open image viewer window when clicked
-                    ImageViewerWindow.ShowWindow(_preview, _targetTexture != null ? _targetTexture.name + " - Preview" : "Preview");
-                }
-                
                 // Add a subtle border
                 GUI.Box(previewRect, "", EditorStyles.helpBox);
                 
-                // Show click hint on hover
+                // Show click hint on hover and handle click
                 if (previewRect.Contains(Event.current.mousePosition))
                 {
                     EditorGUI.DrawRect(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
@@ -94,6 +102,14 @@ namespace LuticaLab.TextureCocktail
                     GUI.Label(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
                         LanguageDisplayer.Instance.GetTranslatedLanguage("click_to_view_fullsize"), 
                         new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, normal = new GUIStyleState { textColor = Color.white } });
+                    
+                    // Handle mouse click
+                    if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
+                    {
+                        ImageViewerWindow.ShowWindow(_preview, _targetTexture != null ? _targetTexture.name + " - Preview" : "Preview");
+                        Event.current.Use();
+                    }
+                    
                     Repaint();
                 }
             }
