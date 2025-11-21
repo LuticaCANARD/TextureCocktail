@@ -78,7 +78,8 @@ Shader "Hidden/ArtisticEffects"
             // Pixelate effect
             fixed4 pixelate(float2 uv, float pixelSize)
             {
-                float2 pixelUV = floor(uv * _MainTex_TexelSize.zw / pixelSize) * pixelSize / _MainTex_TexelSize.zw;
+                // Use actual pixel size in texture space
+                float2 pixelUV = floor(uv * _MainTex_TexelSize.zw / max(pixelSize, 1.0)) * max(pixelSize, 1.0) / _MainTex_TexelSize.zw;
                 return tex2D(_MainTex, pixelUV);
             }
             
@@ -86,7 +87,9 @@ Shader "Hidden/ArtisticEffects"
             fixed4 posterize(float2 uv, float levels)
             {
                 fixed4 col = tex2D(_MainTex, uv);
-                col.rgb = floor(col.rgb * levels) / levels;
+                // Ensure levels is at least 2 to avoid division by zero
+                float validLevels = max(levels, 2.0);
+                col.rgb = floor(col.rgb * validLevels) / validLevels;
                 return col;
             }
             
@@ -171,6 +174,10 @@ Shader "Hidden/ArtisticEffects"
             {
                 fixed4 col = tex2D(_MainTex, uv);
                 
+                // Color quantization - ensure colorSteps is valid
+                float validSteps = max(colorSteps, 2.0);
+                col.rgb = floor(col.rgb * validSteps) / validSteps;
+                
                 // Edge detection
                 float edge = 0;
                 for (int y = -1; y <= 1; y++)
@@ -185,13 +192,10 @@ Shader "Hidden/ArtisticEffects"
                 }
                 edge /= 8.0;
                 
-                // Color quantization
-                col.rgb = floor(col.rgb * colorSteps) / colorSteps;
-                
-                // Apply edge
+                // Apply edge - darken edge pixels
                 if (edge > edgeThreshold)
                 {
-                    col.rgb = float3(0, 0, 0);
+                    col.rgb = lerp(col.rgb, float3(0, 0, 0), 0.8);
                 }
                 
                 return col;

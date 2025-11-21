@@ -29,9 +29,63 @@ namespace LuticaLab.TextureCocktail
         private bool _shaderChanged = false;
         private readonly Dictionary<string,bool> _keywordOnOff = new Dictionary<string, bool>();
         const string _mainTexProperty = "_MainTex";
+        
+        // Quick shader selection
+        private static readonly string[] _quickShaderNames = new string[]
+        {
+            "None",
+            "FastImageConverter",
+            "FeatureExtractor", 
+            "ColorCorrection",
+            "TextureBlender",
+            "ArtisticEffects",
+            "ImageFilter (HSVMover)",
+            "ImageSync",
+            "InverseFilter",
+            "NormalMapGenerator"
+        };
+        
+        private static readonly string[] _quickShaderPaths = new string[]
+        {
+            "",
+            "Hidden/FastImageConverter",
+            "Hidden/FeatureExtractor",
+            "Hidden/ColorCorrection",
+            "Hidden/TextureBlender",
+            "Hidden/ArtisticEffects",
+            "Hidden/ImageFilter",
+            "Hidden/ImageSync",
+            "Hidden/ImageEffect",
+            "Hidden/NormalMapGenerator"
+        };
+        
+        private int _selectedQuickShaderIndex = 0;
+        
         private void OnGUI()
         {
             GUILayout.Label("TextureCocktail", EditorStyles.boldLabel);
+            
+            // Quick shader selector
+            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("quick_shader_select"), EditorStyles.boldLabel);
+            int newShaderIndex = EditorGUILayout.Popup(LanguageDisplayer.Instance.GetTranslatedLanguage("select_shader"), _selectedQuickShaderIndex, _quickShaderNames);
+            if (newShaderIndex != _selectedQuickShaderIndex)
+            {
+                _selectedQuickShaderIndex = newShaderIndex;
+                if (newShaderIndex > 0)
+                {
+                    var shader = Shader.Find(_quickShaderPaths[newShaderIndex]);
+                    if (shader != null)
+                    {
+                        OnShaderChange(shader);
+                    }
+                }
+                else
+                {
+                    OnShaderChange(null);
+                }
+            }
+            
+            GUILayout.Space(5);
 
             // Shader field - clickable when assigned, selectable when not
             EditorGUILayout.BeginHorizontal();

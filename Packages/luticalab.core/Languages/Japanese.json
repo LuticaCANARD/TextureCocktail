@@ -147,7 +147,12 @@
         "value_convert": "明度(輝度)変換",
         "hue_offset": "色相オフセット",
         "saturation_offset": "彩度オフセット",
-        "value_offset": "明度(輝度)オフセット"
+        "value_offset": "明度(輝度)オフセット",
+        
+        "quick_shader_select": "クイックシェーダー選択",
+        "select_shader": "シェーダーを選択",
+        "oilpaint_warning": "⚠️ オイルペイント効果は計算負荷が高いです。まずパラメータを調整してから、適用ボタンをクリックしてレンダリングしてください。パフォーマンスの問題を防ぐため、リアルタイムプレビューは無効になっています。",
+        "apply_oilpaint": "オイルペイント効果を適用"
     }
     
 }

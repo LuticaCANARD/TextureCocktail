@@ -144,7 +144,12 @@
             "value_convert": "Value (Brightness) Convert",
             "hue_offset": "Hue Offset",
             "saturation_offset": "Saturation Offset",
-            "value_offset": "Value (Brightness) Offset"
+            "value_offset": "Value (Brightness) Offset",
+            
+            "quick_shader_select": "Quick Shader Selection",
+            "select_shader": "Select Shader",
+            "oilpaint_warning": "⚠️ Oil Paint effect is computationally expensive. Adjust parameters first, then click Apply to render. Real-time preview is disabled to prevent performance issues.",
+            "apply_oilpaint": "Apply Oil Paint Effect"
         }
     
 }

@@ -63,16 +63,27 @@ namespace LuticaLab.TextureCocktail
             
             GUILayout.Space(10);
             
-            // Effect-specific settings
+            // Effect-specific settings - show only relevant parameters
             if (currentEffect != ArtisticEffect.None)
             {
                 _showEffectSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showEffectSettings, 
                     LanguageDisplayer.Instance.GetTranslatedLanguage("effect_settings"));
                 if (_showEffectSettings)
                 {
-                    baseWindow.ShowShaderInfo();
+                    ShowEffectSpecificParameters();
                 }
                 EditorGUILayout.EndFoldoutHeaderGroup();
+            }
+            
+            // Warning for Oil Paint
+            if (currentEffect == ArtisticEffect.OilPaint)
+            {
+                EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("oilpaint_warning"), MessageType.Warning);
+                
+                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_oilpaint"), GUILayout.Height(35)))
+                {
+                    baseWindow.CompileShader();
+                }
             }
             
             // Preview
@@ -84,9 +95,12 @@ namespace LuticaLab.TextureCocktail
                 
                 // Quick actions
                 EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                if (currentEffect != ArtisticEffect.OilPaint)
                 {
-                    baseWindow.CompileShader();
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                    {
+                        baseWindow.CompileShader();
+                    }
                 }
                 if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
                 {
@@ -97,6 +111,92 @@ namespace LuticaLab.TextureCocktail
             EditorGUILayout.EndFoldoutHeaderGroup();
             
             GUILayout.EndScrollView();
+        }
+        
+        private void ShowEffectSpecificParameters()
+        {
+            var material = GetMaterial();
+            if (material == null) return;
+            
+            EditorGUI.BeginChangeCheck();
+            
+            switch (currentEffect)
+            {
+                case ArtisticEffect.Pixelate:
+                    if (material.HasProperty("_PixelSize"))
+                    {
+                        float pixelSize = material.GetFloat("_PixelSize");
+                        pixelSize = EditorGUILayout.Slider("Pixel Size", pixelSize, 1, 100);
+                        material.SetFloat("_PixelSize", pixelSize);
+                    }
+                    break;
+                    
+                case ArtisticEffect.Posterize:
+                    if (material.HasProperty("_ColorLevels"))
+                    {
+                        float colorLevels = material.GetFloat("_ColorLevels");
+                        colorLevels = EditorGUILayout.Slider("Color Levels", colorLevels, 2, 256);
+                        material.SetFloat("_ColorLevels", colorLevels);
+                    }
+                    break;
+                    
+                case ArtisticEffect.Halftone:
+                    if (material.HasProperty("_DotSize"))
+                    {
+                        float dotSize = material.GetFloat("_DotSize");
+                        dotSize = EditorGUILayout.Slider("Dot Size", dotSize, 1, 20);
+                        material.SetFloat("_DotSize", dotSize);
+                    }
+                    if (material.HasProperty("_DotAngle"))
+                    {
+                        float dotAngle = material.GetFloat("_DotAngle");
+                        dotAngle = EditorGUILayout.Slider("Dot Angle", dotAngle, 0, 360);
+                        material.SetFloat("_DotAngle", dotAngle);
+                    }
+                    break;
+                    
+                case ArtisticEffect.OilPaint:
+                    if (material.HasProperty("_Radius"))
+                    {
+                        float radius = material.GetFloat("_Radius");
+                        radius = EditorGUILayout.Slider("Oil Paint Radius", radius, 1, 10);
+                        material.SetFloat("_Radius", radius);
+                    }
+                    break;
+                    
+                case ArtisticEffect.Emboss:
+                    if (material.HasProperty("_EmbossStrength"))
+                    {
+                        float embossStrength = material.GetFloat("_EmbossStrength");
+                        embossStrength = EditorGUILayout.Slider("Emboss Strength", embossStrength, 0, 5);
+                        material.SetFloat("_EmbossStrength", embossStrength);
+                    }
+                    break;
+                    
+                case ArtisticEffect.Cartoon:
+                    if (material.HasProperty("_EdgeThreshold"))
+                    {
+                        float edgeThreshold = material.GetFloat("_EdgeThreshold");
+                        edgeThreshold = EditorGUILayout.Slider("Edge Threshold", edgeThreshold, 0, 1);
+                        material.SetFloat("_EdgeThreshold", edgeThreshold);
+                    }
+                    if (material.HasProperty("_ColorSteps"))
+                    {
+                        float colorSteps = material.GetFloat("_ColorSteps");
+                        colorSteps = EditorGUILayout.Slider("Color Steps", colorSteps, 2, 10);
+                        material.SetFloat("_ColorSteps", colorSteps);
+                    }
+                    break;
+            }
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                // Only auto-compile for effects other than Oil Paint
+                if (currentEffect != ArtisticEffect.OilPaint)
+                {
+                    baseWindow.CompileShader();
+                }
+            }
         }
         
         private string GetEffectDescription()
