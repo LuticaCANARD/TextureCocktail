@@ -89,7 +89,7 @@ namespace LuticaLab.TextureCocktail
                 LanguageDisplayer.Instance.GetTranslatedLanguage("basic_color_settings"));
             if (_showBasicSettings)
             {
-                baseWindow.ShowShaderInfo();
+                ShowModeSpecificParameters();
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
             
@@ -115,6 +115,101 @@ namespace LuticaLab.TextureCocktail
             EditorGUILayout.EndFoldoutHeaderGroup();
             
             GUILayout.EndScrollView();
+        }
+        
+        private void ShowModeSpecificParameters()
+        {
+            var material = GetMaterial();
+            if (material == null)
+            {
+                baseWindow.ShowShaderInfo();
+                return;
+            }
+            
+            EditorGUI.BeginChangeCheck();
+            
+            // Always show temperature and tint
+            if (material.HasProperty("_Temperature"))
+            {
+                float temp = material.GetFloat("_Temperature");
+                temp = EditorGUILayout.Slider("Temperature", temp, -1, 1);
+                material.SetFloat("_Temperature", temp);
+            }
+            
+            if (material.HasProperty("_Tint"))
+            {
+                float tint = material.GetFloat("_Tint");
+                tint = EditorGUILayout.Slider("Tint", tint, -1, 1);
+                material.SetFloat("_Tint", tint);
+            }
+            
+            if (material.HasProperty("_Exposure"))
+            {
+                float exposure = material.GetFloat("_Exposure");
+                exposure = EditorGUILayout.Slider("Exposure", exposure, -3, 3);
+                material.SetFloat("_Exposure", exposure);
+            }
+            
+            // Mode-specific parameters
+            switch (gradingMode)
+            {
+                case ColorGradingMode.Basic:
+                    // Basic mode - only temp/tint/exposure (already shown above)
+                    break;
+                    
+                case ColorGradingMode.ColorGrading:
+                    // Show Lift/Gamma/Gain controls
+                    if (material.HasProperty("_Lift"))
+                    {
+                        Color lift = material.GetColor("_Lift");
+                        lift = EditorGUILayout.ColorField("Lift", lift);
+                        material.SetColor("_Lift", lift);
+                    }
+                    
+                    if (material.HasProperty("_Gamma"))
+                    {
+                        Color gamma = material.GetColor("_Gamma");
+                        gamma = EditorGUILayout.ColorField("Gamma", gamma);
+                        material.SetColor("_Gamma", gamma);
+                    }
+                    
+                    if (material.HasProperty("_Gain"))
+                    {
+                        Color gain = material.GetColor("_Gain");
+                        gain = EditorGUILayout.ColorField("Gain", gain);
+                        material.SetColor("_Gain", gain);
+                    }
+                    break;
+                    
+                case ColorGradingMode.SplitToning:
+                    // Show split toning controls
+                    if (material.HasProperty("_ShadowColor"))
+                    {
+                        Color shadowColor = material.GetColor("_ShadowColor");
+                        shadowColor = EditorGUILayout.ColorField("Shadow Color", shadowColor);
+                        material.SetColor("_ShadowColor", shadowColor);
+                    }
+                    
+                    if (material.HasProperty("_HighlightColor"))
+                    {
+                        Color highlightColor = material.GetColor("_HighlightColor");
+                        highlightColor = EditorGUILayout.ColorField("Highlight Color", highlightColor);
+                        material.SetColor("_HighlightColor", highlightColor);
+                    }
+                    
+                    if (material.HasProperty("_Balance"))
+                    {
+                        float balance = material.GetFloat("_Balance");
+                        balance = EditorGUILayout.Slider("Balance", balance, -1, 1);
+                        material.SetFloat("_Balance", balance);
+                    }
+                    break;
+            }
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                baseWindow.OnShaderValueChange();
+            }
         }
         
         private string GetModeDescription()

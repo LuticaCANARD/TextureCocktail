@@ -183,18 +183,57 @@ namespace LuticaLab.TextureCocktail
         
         private void ShowEdgeDetectionSettings()
         {
+            var material = GetMaterial();
+            if (material == null) return;
+            
+            EditorGUI.BeginChangeCheck();
+            
             GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("edge_detection_settings"));
+            
+            if (material.HasProperty("_EdgeSensitivity"))
+            {
+                float sensitivity = material.GetFloat("_EdgeSensitivity");
+                sensitivity = EditorGUILayout.Slider("Edge Sensitivity", sensitivity, 0, 1);
+                material.SetFloat("_EdgeSensitivity", sensitivity);
+            }
+            
             EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("edge_sensitivity_help"), MessageType.None);
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                baseWindow.OnShaderValueChange();
+            }
         }
         
         private void ShowColorSegmentationSettings()
         {
+            var material = GetMaterial();
+            if (material == null) return;
+            
+            EditorGUI.BeginChangeCheck();
+            
             GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("color_segmentation_settings"));
+            
+            if (material.HasProperty("_ColorThreshold"))
+            {
+                float threshold = material.GetFloat("_ColorThreshold");
+                threshold = EditorGUILayout.Slider("Quantization Level", threshold, 0, 1);
+                material.SetFloat("_ColorThreshold", threshold);
+            }
+            
             EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("color_threshold_help"), MessageType.None);
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                baseWindow.OnShaderValueChange();
+            }
         }
         
         private void ShowHistogramSettings()
         {
+            var material = GetMaterial();
+            if (material == null) return;
+            
             GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("histogram_settings"));
             EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("histogram_help"), MessageType.None);
         }

@@ -211,9 +211,15 @@ Shader "Hidden/FeatureExtractor"
             {
                 fixed4 col = tex2D(_MainTex, i.uv);
                 
-                // Quantize colors
-                float levels = lerp(256.0, 4.0, _ColorThreshold);
+                // Quantize colors - _ColorThreshold is 0-1, so we need to properly map it
+                // When threshold is 0, use max levels (256), when 1, use min levels (2)
+                float levels = lerp(2.0, 64.0, 1.0 - _ColorThreshold);
+                levels = max(levels, 2.0);
+                
                 col.rgb = floor(col.rgb * levels) / levels;
+                
+                // Enhance contrast to make quantization more visible
+                col.rgb = pow(col.rgb, 0.9);
                 
                 return col;
             }

@@ -103,7 +103,7 @@ namespace LuticaLab.TextureCocktail
                 LanguageDisplayer.Instance.GetTranslatedLanguage("basic_adjustments"));
             if (_showBasicAdjustments)
             {
-                baseWindow.ShowShaderInfo();
+                ShowFilterSpecificParameters();
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
             
@@ -129,6 +129,78 @@ namespace LuticaLab.TextureCocktail
             EditorGUILayout.EndFoldoutHeaderGroup();
             
             GUILayout.EndScrollView();
+        }
+        
+        private void ShowFilterSpecificParameters()
+        {
+            var material = GetMaterial();
+            if (material == null)
+            {
+                baseWindow.ShowShaderInfo();
+                return;
+            }
+            
+            EditorGUI.BeginChangeCheck();
+            
+            // Always show basic image adjustment parameters
+            if (material.HasProperty("_Brightness"))
+            {
+                float brightness = material.GetFloat("_Brightness");
+                brightness = EditorGUILayout.Slider("Brightness", brightness, -1, 1);
+                material.SetFloat("_Brightness", brightness);
+            }
+            
+            if (material.HasProperty("_Contrast"))
+            {
+                float contrast = material.GetFloat("_Contrast");
+                contrast = EditorGUILayout.Slider("Contrast", contrast, 0, 2);
+                material.SetFloat("_Contrast", contrast);
+            }
+            
+            if (material.HasProperty("_Saturation"))
+            {
+                float saturation = material.GetFloat("_Saturation");
+                saturation = EditorGUILayout.Slider("Saturation", saturation, 0, 2);
+                material.SetFloat("_Saturation", saturation);
+            }
+            
+            if (material.HasProperty("_Gamma"))
+            {
+                float gamma = material.GetFloat("_Gamma");
+                gamma = EditorGUILayout.Slider("Gamma", gamma, 0.1f, 3);
+                material.SetFloat("_Gamma", gamma);
+            }
+            
+            // Show filter-specific parameters based on filter mode
+            switch (filterMode)
+            {
+                case FilterMode.Blur:
+                    if (material.HasProperty("_BlurSize"))
+                    {
+                        float blurSize = material.GetFloat("_BlurSize");
+                        blurSize = EditorGUILayout.Slider("Blur Size", blurSize, 0, 5);
+                        material.SetFloat("_BlurSize", blurSize);
+                    }
+                    break;
+                    
+                case FilterMode.Sharpen:
+                    if (material.HasProperty("_SharpenStrength"))
+                    {
+                        float sharpen = material.GetFloat("_SharpenStrength");
+                        sharpen = EditorGUILayout.Slider("Sharpen Strength", sharpen, 0, 2);
+                        material.SetFloat("_SharpenStrength", sharpen);
+                    }
+                    break;
+                    
+                case FilterMode.EdgeDetection:
+                    // Edge detection doesn't have additional parameters
+                    break;
+            }
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                baseWindow.OnShaderValueChange();
+            }
         }
         
         private void ApplyPreset(string presetName)

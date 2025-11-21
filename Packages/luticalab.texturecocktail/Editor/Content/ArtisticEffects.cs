@@ -129,6 +129,18 @@ namespace LuticaLab.TextureCocktail
                         pixelSize = EditorGUILayout.Slider("Pixel Size", pixelSize, 1, 100);
                         material.SetFloat("_PixelSize", pixelSize);
                     }
+                    if (material.HasProperty("_PixelCenterX"))
+                    {
+                        float centerX = material.GetFloat("_PixelCenterX");
+                        centerX = EditorGUILayout.Slider("Center X", centerX, 0, 1);
+                        material.SetFloat("_PixelCenterX", centerX);
+                    }
+                    if (material.HasProperty("_PixelCenterY"))
+                    {
+                        float centerY = material.GetFloat("_PixelCenterY");
+                        centerY = EditorGUILayout.Slider("Center Y", centerY, 0, 1);
+                        material.SetFloat("_PixelCenterY", centerY);
+                    }
                     break;
                     
                 case ArtisticEffect.Posterize:

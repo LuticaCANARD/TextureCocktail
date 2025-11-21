@@ -148,6 +148,13 @@
         "quick_shader_select": "빠른 셰이더 선택",
         "select_shader": "셰이더 선택",
         "oilpaint_warning": "⚠️ 오일 페인트 효과는 계산 부하가 큽니다. 먼저 파라미터를 조정한 다음 적용 버튼을 클릭하여 렌더링하세요. 성능 문제를 방지하기 위해 실시간 미리보기가 비활성화되었습니다.",
-        "apply_oilpaint": "오일 페인트 효과 적용"
+        "apply_oilpaint": "오일 페인트 효과 적용",
+        
+        "normal_map_generator_title": "노말 맵 생성기",
+        "normal_map_description": "높이/그레이스케일 텍스처에서 노말 맵을 생성합니다. 입력 이미지의 휘도를 높이 정보로 사용하여 표면 노말을 계산합니다.",
+        "normal_map_settings": "노말 맵 설정",
+        "normal_strength": "노말 강도",
+        "height_scale": "높이 스케일",
+        "normal_map_info": "하이트 맵(그레이스케일)을 3D 표면 디테일용 노말 맵으로 변환합니다."
     }
 }

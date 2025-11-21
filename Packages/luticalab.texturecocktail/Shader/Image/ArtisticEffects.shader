@@ -6,6 +6,8 @@ Shader "Hidden/ArtisticEffects"
         
         // Pixelation
         _PixelSize ("Pixel Size", Range(1, 100)) = 1
+        _PixelCenterX ("Pixel Center X", Range(0, 1)) = 0.5
+        _PixelCenterY ("Pixel Center Y", Range(0, 1)) = 0.5
         
         // Posterize
         _ColorLevels ("Color Levels", Range(2, 256)) = 16
@@ -54,6 +56,8 @@ Shader "Hidden/ArtisticEffects"
             float4 _MainTex_TexelSize;
             
             float _PixelSize;
+            float _PixelCenterX;
+            float _PixelCenterY;
             float _ColorLevels;
             float _DotSize;
             float _DotAngle;
@@ -75,21 +79,34 @@ Shader "Hidden/ArtisticEffects"
                 return dot(color, float3(0.299, 0.587, 0.114));
             }
             
-            // Pixelate effect
-            fixed4 pixelate(float2 uv, float pixelSize)
+            // Pixelate effect with center point control
+            fixed4 pixelate(float2 uv, float pixelSize, float2 center)
             {
+                // Offset UV by center point
+                float2 offsetUV = uv - center;
+                
                 // Use actual pixel size in texture space
-                float2 pixelUV = floor(uv * _MainTex_TexelSize.zw / max(pixelSize, 1.0)) * max(pixelSize, 1.0) / _MainTex_TexelSize.zw;
+                float2 pixelUV = floor(offsetUV * _MainTex_TexelSize.zw / max(pixelSize, 1.0)) * max(pixelSize, 1.0) / _MainTex_TexelSize.zw;
+                
+                // Add center back
+                pixelUV += center;
+                
                 return tex2D(_MainTex, pixelUV);
             }
             
-            // Posterize effect
+            // Posterize effect with stronger quantization
             fixed4 posterize(float2 uv, float levels)
             {
                 fixed4 col = tex2D(_MainTex, uv);
                 // Ensure levels is at least 2 to avoid division by zero
                 float validLevels = max(levels, 2.0);
+                
+                // Apply stronger posterization by squaring the effect
                 col.rgb = floor(col.rgb * validLevels) / validLevels;
+                
+                // Enhance contrast to make posterization more visible
+                col.rgb = pow(col.rgb, 0.8);
+                
                 return col;
             }
             
@@ -206,7 +223,7 @@ Shader "Hidden/ArtisticEffects"
                 fixed4 col = tex2D(_MainTex, i.uv);
                 
                 #ifdef PIXELATE
-                    col = pixelate(i.uv, _PixelSize);
+                    col = pixelate(i.uv, _PixelSize, float2(_PixelCenterX, _PixelCenterY));
                 #elif POSTERIZE
                     col = posterize(i.uv, _ColorLevels);
                 #elif HALFTONE

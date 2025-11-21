@@ -149,7 +149,14 @@
             "quick_shader_select": "Quick Shader Selection",
             "select_shader": "Select Shader",
             "oilpaint_warning": "⚠️ Oil Paint effect is computationally expensive. Adjust parameters first, then click Apply to render. Real-time preview is disabled to prevent performance issues.",
-            "apply_oilpaint": "Apply Oil Paint Effect"
+            "apply_oilpaint": "Apply Oil Paint Effect",
+            
+            "normal_map_generator_title": "Normal Map Generator",
+            "normal_map_description": "Generate normal maps from height/grayscale textures. The luminance of the input image is used as height information to calculate surface normals.",
+            "normal_map_settings": "Normal Map Settings",
+            "normal_strength": "Normal Strength",
+            "height_scale": "Height Scale",
+            "normal_map_info": "Converts height map (grayscale) to normal map for 3D surface details."
         }
     
 }
