@@ -38,112 +38,117 @@ namespace LuticaLab.TextureCocktail
         {
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             
-            // Title
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_mover_title"), EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_mover_desc"), MessageType.Info);
-            GUILayout.Space(5);
-            
-            // Quick Presets
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("quick_presets"), EditorStyles.boldLabel);
-            EditorGUILayout.BeginHorizontal();
-            foreach (var preset in _presets.Keys)
+            try
             {
-                if (GUILayout.Button(preset, GUILayout.Height(25)))
-                {
-                    _presets[preset]();
-                }
-            }
-            EditorGUILayout.EndHorizontal();
-            GUILayout.Space(10);
-            
-            // HSV Convert section
-            _showHSVConvert = EditorGUILayout.BeginFoldoutHeaderGroup(_showHSVConvert, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_convert"));
-            if (_showHSVConvert)
-            {
-                EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_convert_help"), MessageType.None);
+                // Title
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_mover_title"), EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_mover_desc"), MessageType.Info);
+                GUILayout.Space(5);
                 
-                var material = GetMaterial();
-                if (material != null && material.HasProperty("_hsvConvertVector"))
-                {
-                    Vector4 currentConvert = material.GetVector("_hsvConvertVector");
-                    
-                    EditorGUI.BeginChangeCheck();
-                    
-                    GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("hue_convert"), EditorStyles.boldLabel);
-                    float h = EditorGUILayout.Slider("Hue", currentConvert.x, -1f, 1f);
-                    
-                    GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("saturation_convert"), EditorStyles.boldLabel);
-                    float s = EditorGUILayout.Slider("Saturation", currentConvert.y, -1f, 1f);
-                    
-                    GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("value_convert"), EditorStyles.boldLabel);
-                    float v = EditorGUILayout.Slider("Value", currentConvert.z, -1f, 1f);
-                    
-                    if (EditorGUI.EndChangeCheck())
-                    {
-                        material.SetVector("_hsvConvertVector", new Vector4(h, s, v, 0));
-                        baseWindow.CompileShader();
-                    }
-                }
-            }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            // HSV Offset section
-            _showHSVOffset = EditorGUILayout.BeginFoldoutHeaderGroup(_showHSVOffset, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_offset"));
-            if (_showHSVOffset)
-            {
-                EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_offset_help"), MessageType.None);
-                
-                var material = GetMaterial();
-                if (material != null && material.HasProperty("_hsvOffsetVector"))
-                {
-                    Vector4 currentOffset = material.GetVector("_hsvOffsetVector");
-                    
-                    EditorGUI.BeginChangeCheck();
-                    
-                    GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("hue_offset"), EditorStyles.boldLabel);
-                    float h = EditorGUILayout.Slider("Hue Offset", currentOffset.x, -1f, 1f);
-                    
-                    GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("saturation_offset"), EditorStyles.boldLabel);
-                    float s = EditorGUILayout.Slider("Saturation Offset", currentOffset.y, -1f, 1f);
-                    
-                    GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("value_offset"), EditorStyles.boldLabel);
-                    float v = EditorGUILayout.Slider("Value Offset", currentOffset.z, -1f, 1f);
-                    
-                    if (EditorGUI.EndChangeCheck())
-                    {
-                        material.SetVector("_hsvOffsetVector", new Vector4(h, s, v, 0));
-                        baseWindow.CompileShader();
-                    }
-                }
-            }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            GUILayout.Space(10);
-            
-            // Preview
-            _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
-            if (_showPreview)
-            {
-                baseWindow.DisplayPassedIamge();
-                
-                // Quick actions
+                // Quick Presets
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("quick_presets"), EditorStyles.boldLabel);
                 EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                foreach (var preset in _presets.Keys)
                 {
-                    baseWindow.CompileShader();
-                }
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
-                {
-                    baseWindow.SaveTexture();
+                    if (GUILayout.Button(preset, GUILayout.Height(25)))
+                    {
+                        _presets[preset]();
+                    }
                 }
                 EditorGUILayout.EndHorizontal();
+                GUILayout.Space(10);
+                
+                // HSV Convert section
+                _showHSVConvert = EditorGUILayout.BeginFoldoutHeaderGroup(_showHSVConvert, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_convert"));
+                if (_showHSVConvert)
+                {
+                    EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_convert_help"), MessageType.None);
+                    
+                    var material = GetMaterial();
+                    if (material != null && material.HasProperty("_hsvConvertVector"))
+                    {
+                        Vector4 currentConvert = material.GetVector("_hsvConvertVector");
+                        
+                        EditorGUI.BeginChangeCheck();
+                        
+                        GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("hue_convert"), EditorStyles.boldLabel);
+                        float h = EditorGUILayout.Slider("Hue", currentConvert.x, -1f, 1f);
+                        
+                        GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("saturation_convert"), EditorStyles.boldLabel);
+                        float s = EditorGUILayout.Slider("Saturation", currentConvert.y, -1f, 1f);
+                        
+                        GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("value_convert"), EditorStyles.boldLabel);
+                        float v = EditorGUILayout.Slider("Value", currentConvert.z, -1f, 1f);
+                        
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            material.SetVector("_hsvConvertVector", new Vector4(h, s, v, 0));
+                            baseWindow.CompileShader();
+                        }
+                    }
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                
+                // HSV Offset section
+                _showHSVOffset = EditorGUILayout.BeginFoldoutHeaderGroup(_showHSVOffset, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_offset"));
+                if (_showHSVOffset)
+                {
+                    EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("hsv_offset_help"), MessageType.None);
+                    
+                    var material = GetMaterial();
+                    if (material != null && material.HasProperty("_hsvOffsetVector"))
+                    {
+                        Vector4 currentOffset = material.GetVector("_hsvOffsetVector");
+                        
+                        EditorGUI.BeginChangeCheck();
+                        
+                        GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("hue_offset"), EditorStyles.boldLabel);
+                        float h = EditorGUILayout.Slider("Hue Offset", currentOffset.x, -1f, 1f);
+                        
+                        GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("saturation_offset"), EditorStyles.boldLabel);
+                        float s = EditorGUILayout.Slider("Saturation Offset", currentOffset.y, -1f, 1f);
+                        
+                        GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("value_offset"), EditorStyles.boldLabel);
+                        float v = EditorGUILayout.Slider("Value Offset", currentOffset.z, -1f, 1f);
+                        
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            material.SetVector("_hsvOffsetVector", new Vector4(h, s, v, 0));
+                            baseWindow.CompileShader();
+                        }
+                    }
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                
+                GUILayout.Space(10);
+                
+                // Preview
+                _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
+                if (_showPreview)
+                {
+                    baseWindow.DisplayPassedIamge();
+                    
+                    // Quick actions
+                    EditorGUILayout.BeginHorizontal();
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                    {
+                        baseWindow.CompileShader();
+                    }
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
+                    {
+                        baseWindow.SaveTexture();
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
             }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            GUILayout.EndScrollView();
+            finally
+            {
+                GUILayout.EndScrollView();
+            }
         }
         
         private void ApplyPreset(Vector3 convert, Vector3 offset)

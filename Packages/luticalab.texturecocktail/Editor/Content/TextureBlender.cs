@@ -58,88 +58,93 @@ namespace LuticaLab.TextureCocktail
         {
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             
-            // Title
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("texture_blender_title"), EditorStyles.boldLabel);
-            GUILayout.Space(5);
-            
-            // Blend Mode Selection
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("blend_mode_selection"), EditorStyles.boldLabel);
-            var newMode = (BlendMode)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("blend_mode"), blendMode);
-            if (newMode != blendMode)
+            try
             {
-                blendMode = newMode;
-                ApplyBlendMode();
-            }
-            
-            // Display blend mode description
-            EditorGUILayout.HelpBox(GetBlendModeDescription(), MessageType.Info);
-            
-            GUILayout.Space(10);
-            
-            // Blend Settings
-            _showBlendSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showBlendSettings, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("blend_settings"));
-            if (_showBlendSettings)
-            {
-                baseWindow.ShowShaderInfo();
-            }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            // UV Controls
-            _showUVControls = EditorGUILayout.BeginFoldoutHeaderGroup(_showUVControls, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("uv_controls"));
-            if (_showUVControls)
-            {
-                EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("uv_controls_help"), MessageType.None);
-            }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            // Mask Settings
-            _showMaskSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showMaskSettings, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("mask_settings"));
-            if (_showMaskSettings)
-            {
-                var newUseMask = EditorGUILayout.Toggle(LanguageDisplayer.Instance.GetTranslatedLanguage("use_mask"), _useMask);
-                if (newUseMask != _useMask)
+                // Title
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("texture_blender_title"), EditorStyles.boldLabel);
+                GUILayout.Space(5);
+                
+                // Blend Mode Selection
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("blend_mode_selection"), EditorStyles.boldLabel);
+                var newMode = (BlendMode)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("blend_mode"), blendMode);
+                if (newMode != blendMode)
                 {
-                    _useMask = newUseMask;
-                    var material = GetMaterial();
-                    if (material != null && material.HasProperty("_UseMask"))
+                    blendMode = newMode;
+                    ApplyBlendMode();
+                }
+                
+                // Display blend mode description
+                EditorGUILayout.HelpBox(GetBlendModeDescription(), MessageType.Info);
+                
+                GUILayout.Space(10);
+                
+                // Blend Settings
+                _showBlendSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showBlendSettings, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("blend_settings"));
+                if (_showBlendSettings)
+                {
+                    baseWindow.ShowShaderInfo();
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                
+                // UV Controls
+                _showUVControls = EditorGUILayout.BeginFoldoutHeaderGroup(_showUVControls, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("uv_controls"));
+                if (_showUVControls)
+                {
+                    EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("uv_controls_help"), MessageType.None);
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                
+                // Mask Settings
+                _showMaskSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showMaskSettings, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("mask_settings"));
+                if (_showMaskSettings)
+                {
+                    var newUseMask = EditorGUILayout.Toggle(LanguageDisplayer.Instance.GetTranslatedLanguage("use_mask"), _useMask);
+                    if (newUseMask != _useMask)
                     {
-                        material.SetFloat("_UseMask", _useMask ? 1.0f : 0.0f);
-                        baseWindow.CompileShader();
+                        _useMask = newUseMask;
+                        var material = GetMaterial();
+                        if (material != null && material.HasProperty("_UseMask"))
+                        {
+                            material.SetFloat("_UseMask", _useMask ? 1.0f : 0.0f);
+                            baseWindow.CompileShader();
+                        }
+                    }
+                    
+                    if (_useMask)
+                    {
+                        EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("mask_help"), MessageType.Info);
                     }
                 }
+                EditorGUILayout.EndFoldoutHeaderGroup();
                 
-                if (_useMask)
+                // Preview
+                _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
+                if (_showPreview)
                 {
-                    EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("mask_help"), MessageType.Info);
+                    baseWindow.DisplayPassedIamge();
+                    
+                    // Quick actions
+                    EditorGUILayout.BeginHorizontal();
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                    {
+                        baseWindow.CompileShader();
+                    }
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
+                    {
+                        baseWindow.SaveTexture();
+                    }
+                    EditorGUILayout.EndHorizontal();
                 }
+                EditorGUILayout.EndFoldoutHeaderGroup();
             }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            // Preview
-            _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
-            if (_showPreview)
+            finally
             {
-                baseWindow.DisplayPassedIamge();
-                
-                // Quick actions
-                EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
-                {
-                    baseWindow.CompileShader();
-                }
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
-                {
-                    baseWindow.SaveTexture();
-                }
-                EditorGUILayout.EndHorizontal();
+                GUILayout.EndScrollView();
             }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            GUILayout.EndScrollView();
         }
         
         private string GetBlendModeDescription()

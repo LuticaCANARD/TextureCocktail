@@ -22,47 +22,52 @@ namespace LuticaLab.TextureCocktail
         {
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             
-            // Title
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("normal_map_generator_title"), EditorStyles.boldLabel);
-            GUILayout.Space(5);
-            
-            // Description
-            EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("normal_map_description"), MessageType.Info);
-            GUILayout.Space(10);
-            
-            // Settings
-            _showSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showSettings, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("normal_map_settings"));
-            if (_showSettings)
+            try
             {
-                ShowNormalMapSettings();
-            }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            GUILayout.Space(10);
-            
-            // Preview
-            _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
-            if (_showPreview)
-            {
-                baseWindow.DisplayPassedIamge();
+                // Title
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("normal_map_generator_title"), EditorStyles.boldLabel);
+                GUILayout.Space(5);
                 
-                // Quick actions
-                EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                // Description
+                EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("normal_map_description"), MessageType.Info);
+                GUILayout.Space(10);
+                
+                // Settings
+                _showSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showSettings, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("normal_map_settings"));
+                if (_showSettings)
                 {
-                    baseWindow.CompileShader();
+                    ShowNormalMapSettings();
                 }
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                
+                GUILayout.Space(10);
+                
+                // Preview
+                _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
+                if (_showPreview)
                 {
-                    baseWindow.SaveTexture();
+                    baseWindow.DisplayPassedIamge();
+                    
+                    // Quick actions
+                    EditorGUILayout.BeginHorizontal();
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                    {
+                        baseWindow.CompileShader();
+                    }
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
+                    {
+                        baseWindow.SaveTexture();
+                    }
+                    EditorGUILayout.EndHorizontal();
                 }
-                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.EndFoldoutHeaderGroup();
             }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            GUILayout.EndScrollView();
+            finally
+            {
+                GUILayout.EndScrollView();
+            }
         }
         
         private void ShowNormalMapSettings()

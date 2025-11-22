@@ -39,49 +39,57 @@ namespace LuticaLab.TextureCocktail
         public override void OnGUI()
         {
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
-            GUILayout.Label("Image Sync Content");
+            
+            try
+            {
+                GUILayout.Label("Image Sync Content");
 
-            //-----------------
-            GUILayout.Label("Sync Type");
-            var changed = (ImageSyncType)EditorGUILayout.EnumPopup("Sync Type", imageSyncType);
-            switch (imageSyncType)
-            {
-                case ImageSyncType.Add:
-                    GUILayout.Label("Additive Sync: Combines images by adding pixel values.");
-                    break;
-                case ImageSyncType.Sub:
-                    GUILayout.Label("Subtractive Sync: Combines images by subtracting pixel values.");
-                    break;
-                case ImageSyncType.Mul:
-                    GUILayout.Label("Multiplicative Sync: Combines images by multiplying pixel values.");
-                    break;
-            }
-            if (changed != imageSyncType)
-            {
-                imageSyncType = changed;
-                string target = GetShaderKeyName();
-                foreach ( var key in _shaderKeyNames)
+                //-----------------
+                GUILayout.Label("Sync Type");
+                var changed = (ImageSyncType)EditorGUILayout.EnumPopup("Sync Type", imageSyncType);
+                switch (imageSyncType)
                 {
-                    baseWindow.SetMaterialKeyword(key, key == target);
+                    case ImageSyncType.Add:
+                        GUILayout.Label("Additive Sync: Combines images by adding pixel values.");
+                        break;
+                    case ImageSyncType.Sub:
+                        GUILayout.Label("Subtractive Sync: Combines images by subtracting pixel values.");
+                        break;
+                    case ImageSyncType.Mul:
+                        GUILayout.Label("Multiplicative Sync: Combines images by multiplying pixel values.");
+                        break;
                 }
-                baseWindow.CompileShader();
+                if (changed != imageSyncType)
+                {
+                    imageSyncType = changed;
+                    string target = GetShaderKeyName();
+                    foreach ( var key in _shaderKeyNames)
+                    {
+                        baseWindow.SetMaterialKeyword(key, key == target);
+                    }
+                    baseWindow.CompileShader();
+                }
+
+                //-----------------
+
+                baseWindow.ShowShaderInfo();
+
+                _showCompileState = EditorGUILayout.BeginFoldoutHeaderGroup(_showCompileState, "Shader Compile State");
+                if(_showCompileState)
+                    baseWindow.DisplayShaderOptions();// Display shader options if any
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                _isShowPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_isShowPreview, "Preview");
+                if (_isShowPreview)
+                {
+                    baseWindow.DisplayPassedIamge();
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
             }
-
-            //-----------------
-
-            baseWindow.ShowShaderInfo();
-
-            _showCompileState = EditorGUILayout.BeginFoldoutHeaderGroup(_showCompileState, "Shader Compile State");
-            if(_showCompileState)
-                baseWindow.DisplayShaderOptions();// Display shader options if any
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            _isShowPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_isShowPreview, "Preview");
-            if (_isShowPreview)
+            finally
             {
-                baseWindow.DisplayPassedIamge();
+                GUILayout.EndScrollView();
             }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            GUILayout.EndScrollView();
+            
             if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture")))
                 baseWindow.SaveTexture();
         }

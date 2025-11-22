@@ -57,11 +57,11 @@ namespace LuticaLab.TextureCocktail
             "Hidden/FeatureExtractor",
             "Hidden/ColorCorrection",
             "Hidden/TextureBlender",
-            "Hidden/ArtisticEffects",
-            "Hidden/ImageFilter",
-            "Hidden/ImageSync",
-            "Hidden/ImageEffect",
-            "Hidden/NormalMapGenerator"
+            "Luticalab/ArtisticEffects",
+            "Luticalab/ImageFilter",
+            "Luticalab/ImageSync",
+            "Luticalab/ImageEffect",
+            "Luticalab/NormalMapGenerator"
         };
         
         private int _selectedQuickShaderIndex = 0;
@@ -179,6 +179,12 @@ namespace LuticaLab.TextureCocktail
         }
         public void DisplayShaderOptions()
         {
+            if (_shaderKeys == null || _shaderKeys.Length == 0)
+            {
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("no_shader_options"));
+                return;
+            }
+            
             EditorGUILayout.BeginVertical(
                 GUILayout.MaxWidth(500)
             );
@@ -198,6 +204,11 @@ namespace LuticaLab.TextureCocktail
         }
         public void ShowShaderInfo()
         {
+            if (_shader == null)
+            {
+                return;
+            }
+            
             HashSet<string> dontWantDisplayShaderProperties = new HashSet<string>();
             if (_shaderWindow != null && _shaderWindow.DontWantDisplayPropertyName != null)
             {
@@ -405,6 +416,17 @@ namespace LuticaLab.TextureCocktail
         {
             if (_shader == changeTo) return;
             _shader = changeTo;
+            
+            // Clean up shader window when shader is set to null
+            if (_shader == null)
+            {
+                _shaderWindow = null;
+                _calcMaterial = null;
+                _keywordOnOff.Clear();
+                _shaderKeys = null;
+                return;
+            }
+            
             _calcMaterial = new Material(_shader);
             Debug.Log($"Shader changed to: {_shader.name}");
             string shaderLastName = _shader.name.Split('/')[^1];

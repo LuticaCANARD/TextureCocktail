@@ -53,82 +53,87 @@ namespace LuticaLab.TextureCocktail
         {
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             
-            // Title
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("fast_image_converter_title"), EditorStyles.boldLabel);
-            GUILayout.Space(5);
-            
-            // Quick Presets
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("quick_presets"), EditorStyles.boldLabel);
-            EditorGUILayout.BeginHorizontal();
-            foreach (var preset in _presets.Keys)
+            try
             {
-                if (GUILayout.Button(preset, GUILayout.Height(25)))
-                {
-                    ApplyPreset(preset);
-                }
-            }
-            EditorGUILayout.EndHorizontal();
-            GUILayout.Space(10);
-            
-            // Filter Mode Selection
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_mode"), EditorStyles.boldLabel);
-            var newFilterMode = (FilterMode)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_type"), filterMode);
-            if (newFilterMode != filterMode)
-            {
-                filterMode = newFilterMode;
-                ApplyFilterMode();
-            }
-            
-            // Display filter description
-            switch (filterMode)
-            {
-                case FilterMode.None:
-                    EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_none_desc"), MessageType.Info);
-                    break;
-                case FilterMode.EdgeDetection:
-                    EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_edge_desc"), MessageType.Info);
-                    break;
-                case FilterMode.Blur:
-                    EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_blur_desc"), MessageType.Info);
-                    break;
-                case FilterMode.Sharpen:
-                    EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_sharpen_desc"), MessageType.Info);
-                    break;
-            }
-            
-            GUILayout.Space(10);
-            
-            // Basic Adjustments
-            _showBasicAdjustments = EditorGUILayout.BeginFoldoutHeaderGroup(_showBasicAdjustments, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("basic_adjustments"));
-            if (_showBasicAdjustments)
-            {
-                ShowFilterSpecificParameters();
-            }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            // Preview
-            _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
-            if (_showPreview)
-            {
-                baseWindow.DisplayPassedIamge();
+                // Title
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("fast_image_converter_title"), EditorStyles.boldLabel);
+                GUILayout.Space(5);
                 
-                // Quick actions
+                // Quick Presets
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("quick_presets"), EditorStyles.boldLabel);
                 EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                foreach (var preset in _presets.Keys)
                 {
-                    baseWindow.CompileShader();
-                }
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
-                {
-                    baseWindow.SaveTexture();
+                    if (GUILayout.Button(preset, GUILayout.Height(25)))
+                    {
+                        ApplyPreset(preset);
+                    }
                 }
                 EditorGUILayout.EndHorizontal();
+                GUILayout.Space(10);
+                
+                // Filter Mode Selection
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_mode"), EditorStyles.boldLabel);
+                var newFilterMode = (FilterMode)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_type"), filterMode);
+                if (newFilterMode != filterMode)
+                {
+                    filterMode = newFilterMode;
+                    ApplyFilterMode();
+                }
+                
+                // Display filter description
+                switch (filterMode)
+                {
+                    case FilterMode.None:
+                        EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_none_desc"), MessageType.Info);
+                        break;
+                    case FilterMode.EdgeDetection:
+                        EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_edge_desc"), MessageType.Info);
+                        break;
+                    case FilterMode.Blur:
+                        EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_blur_desc"), MessageType.Info);
+                        break;
+                    case FilterMode.Sharpen:
+                        EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_sharpen_desc"), MessageType.Info);
+                        break;
+                }
+                
+                GUILayout.Space(10);
+                
+                // Basic Adjustments
+                _showBasicAdjustments = EditorGUILayout.BeginFoldoutHeaderGroup(_showBasicAdjustments, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("basic_adjustments"));
+                if (_showBasicAdjustments)
+                {
+                    ShowFilterSpecificParameters();
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                
+                // Preview
+                _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
+                if (_showPreview)
+                {
+                    baseWindow.DisplayPassedIamge();
+                    
+                    // Quick actions
+                    EditorGUILayout.BeginHorizontal();
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                    {
+                        baseWindow.CompileShader();
+                    }
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
+                    {
+                        baseWindow.SaveTexture();
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
             }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            GUILayout.EndScrollView();
+            finally
+            {
+                GUILayout.EndScrollView();
+            }
         }
         
         private void ShowFilterSpecificParameters()
