@@ -45,72 +45,77 @@ namespace LuticaLab.TextureCocktail
         {
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             
-            // Title
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("artistic_effects_title"), EditorStyles.boldLabel);
-            GUILayout.Space(5);
-            
-            // Effect Selection
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("effect_selection"), EditorStyles.boldLabel);
-            var newEffect = (ArtisticEffect)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("effect"), currentEffect);
-            if (newEffect != currentEffect)
+            try
             {
-                currentEffect = newEffect;
-                ApplyEffect();
-            }
-            
-            // Display effect description
-            EditorGUILayout.HelpBox(GetEffectDescription(), MessageType.Info);
-            
-            GUILayout.Space(10);
-            
-            // Effect-specific settings - show only relevant parameters
-            if (currentEffect != ArtisticEffect.None)
-            {
-                _showEffectSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showEffectSettings, 
-                    LanguageDisplayer.Instance.GetTranslatedLanguage("effect_settings"));
-                if (_showEffectSettings)
-                {
-                    ShowEffectSpecificParameters();
-                }
-                EditorGUILayout.EndFoldoutHeaderGroup();
-            }
-            
-            // Warning for Oil Paint
-            if (currentEffect == ArtisticEffect.OilPaint)
-            {
-                EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("oilpaint_warning"), MessageType.Warning);
+                // Title
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("artistic_effects_title"), EditorStyles.boldLabel);
+                GUILayout.Space(5);
                 
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_oilpaint"), GUILayout.Height(35)))
+                // Effect Selection
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("effect_selection"), EditorStyles.boldLabel);
+                var newEffect = (ArtisticEffect)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("effect"), currentEffect);
+                if (newEffect != currentEffect)
                 {
-                    baseWindow.CompileShader();
+                    currentEffect = newEffect;
+                    ApplyEffect();
                 }
-            }
-            
-            // Preview
-            _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
-            if (_showPreview)
-            {
-                baseWindow.DisplayPassedIamge();
                 
-                // Quick actions
-                EditorGUILayout.BeginHorizontal();
-                if (currentEffect != ArtisticEffect.OilPaint)
+                // Display effect description
+                EditorGUILayout.HelpBox(GetEffectDescription(), MessageType.Info);
+                
+                GUILayout.Space(10);
+                
+                // Effect-specific settings - show only relevant parameters
+                if (currentEffect != ArtisticEffect.None)
                 {
-                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                    _showEffectSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showEffectSettings, 
+                        LanguageDisplayer.Instance.GetTranslatedLanguage("effect_settings"));
+                    if (_showEffectSettings)
+                    {
+                        ShowEffectSpecificParameters();
+                    }
+                    EditorGUILayout.EndFoldoutHeaderGroup();
+                }
+                
+                // Warning for Oil Paint
+                if (currentEffect == ArtisticEffect.OilPaint)
+                {
+                    EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("oilpaint_warning"), MessageType.Warning);
+                    
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_oilpaint"), GUILayout.Height(35)))
                     {
                         baseWindow.CompileShader();
                     }
                 }
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
+                
+                // Preview
+                _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
+                if (_showPreview)
                 {
-                    baseWindow.SaveTexture();
+                    baseWindow.DisplayPassedIamge();
+                    
+                    // Quick actions
+                    EditorGUILayout.BeginHorizontal();
+                    if (currentEffect != ArtisticEffect.OilPaint)
+                    {
+                        if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                        {
+                            baseWindow.CompileShader();
+                        }
+                    }
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
+                    {
+                        baseWindow.SaveTexture();
+                    }
+                    EditorGUILayout.EndHorizontal();
                 }
-                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.EndFoldoutHeaderGroup();
             }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            GUILayout.EndScrollView();
+            finally
+            {
+                GUILayout.EndScrollView();
+            }
         }
         
         private void ShowEffectSpecificParameters()
