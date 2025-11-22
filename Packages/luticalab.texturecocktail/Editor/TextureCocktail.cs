@@ -57,11 +57,11 @@ namespace LuticaLab.TextureCocktail
             "Hidden/FeatureExtractor",
             "Hidden/ColorCorrection",
             "Hidden/TextureBlender",
-            "Hidden/ArtisticEffects",
-            "Hidden/ImageFilter",
-            "Hidden/ImageSync",
-            "Hidden/ImageEffect",
-            "Hidden/NormalMapGenerator"
+            "Luticalab/ArtisticEffects",
+            "Luticalab/ImageFilter",
+            "Luticalab/ImageSync",
+            "Luticalab/ImageEffect",
+            "Luticalab/NormalMapGenerator"
         };
         
         private int _selectedQuickShaderIndex = 0;
