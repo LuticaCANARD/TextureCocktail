@@ -308,13 +308,21 @@ namespace LuticaLab.TextureCocktail
                 textureToSave.ReadPixels(new Rect(0, 0, _preview.width, _preview.height), 0, 0);
                 textureToSave.Apply();
                 System.IO.File.WriteAllBytes(path, textureToSave.EncodeToPNG());
-                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+
+                AssetDatabase.Refresh();
+                var relativePath = "Assets" + path.Substring(Application.dataPath.Length);
+                var importer = AssetImporter.GetAtPath(relativePath);
                 if (importer != null)
                 {
-                    importer.npotScale = TextureImporterNPOTScale.None;
-                    importer.SaveAndReimport();
+                    if( importer is TextureImporter)
+                    {
+                        var textureImporter = importer as TextureImporter;
+                        Debug.Log("Setting texture import settings for: " + path);
+                        textureImporter.npotScale = TextureImporterNPOTScale.None;
+                        textureImporter.SaveAndReimport();
+                    }
+
                 }
-                AssetDatabase.Refresh();
                 string reply = string.Format(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture_success"), path);
                 Debug.Log(reply);
             }
