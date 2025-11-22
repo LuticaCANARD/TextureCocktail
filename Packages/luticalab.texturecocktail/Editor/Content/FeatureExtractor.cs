@@ -50,122 +50,130 @@ namespace LuticaLab.TextureCocktail
         
         private void InitializeHistogram()
         {
-            histogramTexture = new Texture2D(256, 100, TextureFormat.RGBA32, false);
-            histogramTexture.filterMode = (UnityEngine.FilterMode)FilterMode.Point;
+            if (histogramTexture == null)
+            {
+                histogramTexture = new Texture2D(256, 100, TextureFormat.RGBA32, false);
+                histogramTexture.filterMode = (UnityEngine.FilterMode)FilterMode.Point;
+            }
         }
         
         public override void OnGUI()
         {
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             
-            // Title
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("feature_extractor_title"), EditorStyles.boldLabel);
-            GUILayout.Space(5);
-            
-            // Extraction Mode Selection
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("extraction_mode"), EditorStyles.boldLabel);
-            var newMode = (FeatureExtractionMode)EditorGUILayout.EnumPopup(
-                LanguageDisplayer.Instance.GetTranslatedLanguage("mode"), extractionMode);
-            
-            if (newMode != extractionMode)
+            try
             {
-                extractionMode = newMode;
-                ApplyExtractionMode();
-            }
-            
-            // Display mode description
-            EditorGUILayout.HelpBox(GetModeDescription(), MessageType.Info);
-            
-            GUILayout.Space(10);
-            
-            // Mode-specific settings
-            _showSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showSettings, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("extraction_settings"));
-            if (_showSettings)
-            {
-                EditorGUI.indentLevel++;
-                
-                switch (extractionMode)
-                {
-                    case FeatureExtractionMode.EdgeDetection:
-                    case FeatureExtractionMode.CannyEdge:
-                        ShowEdgeDetectionSettings();
-                        break;
-                    case FeatureExtractionMode.ColorSegmentation:
-                        ShowColorSegmentationSettings();
-                        break;
-                    case FeatureExtractionMode.HistogramEnhance:
-                        ShowHistogramSettings();
-                        break;
-                }
-                
-                EditorGUI.indentLevel--;
-            }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            // Analysis Channel (for histogram mode)
-            if (extractionMode == FeatureExtractionMode.HistogramEnhance)
-            {
+                // Title
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("feature_extractor_title"), EditorStyles.boldLabel);
                 GUILayout.Space(5);
-                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("analysis_channel"), EditorStyles.boldLabel);
-                var newChannel = (AnalysisChannel)EditorGUILayout.EnumPopup(
-                    LanguageDisplayer.Instance.GetTranslatedLanguage("channel"), analysisChannel);
                 
-                if (newChannel != analysisChannel)
+                // Extraction Mode Selection
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("extraction_mode"), EditorStyles.boldLabel);
+                var newMode = (FeatureExtractionMode)EditorGUILayout.EnumPopup(
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("mode"), extractionMode);
+                
+                if (newMode != extractionMode)
                 {
-                    analysisChannel = newChannel;
-                    UpdateAnalysisChannel();
+                    extractionMode = newMode;
+                    ApplyExtractionMode();
                 }
-            }
-            
-            // Histogram Visualization
-            if (extractionMode == FeatureExtractionMode.HistogramEnhance)
-            {
-                _showHistogram = EditorGUILayout.BeginFoldoutHeaderGroup(_showHistogram, 
-                    LanguageDisplayer.Instance.GetTranslatedLanguage("histogram_view"));
-                if (_showHistogram)
+                
+                // Display mode description
+                EditorGUILayout.HelpBox(GetModeDescription(), MessageType.Info);
+                
+                GUILayout.Space(10);
+                
+                // Mode-specific settings
+                _showSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showSettings, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("extraction_settings"));
+                if (_showSettings)
                 {
-                    DrawHistogram();
+                    EditorGUI.indentLevel++;
+                    
+                    switch (extractionMode)
+                    {
+                        case FeatureExtractionMode.EdgeDetection:
+                        case FeatureExtractionMode.CannyEdge:
+                            ShowEdgeDetectionSettings();
+                            break;
+                        case FeatureExtractionMode.ColorSegmentation:
+                            ShowColorSegmentationSettings();
+                            break;
+                        case FeatureExtractionMode.HistogramEnhance:
+                            ShowHistogramSettings();
+                            break;
+                    }
+                    
+                    EditorGUI.indentLevel--;
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                
+                // Analysis Channel (for histogram mode)
+                if (extractionMode == FeatureExtractionMode.HistogramEnhance)
+                {
+                    GUILayout.Space(5);
+                    GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("analysis_channel"), EditorStyles.boldLabel);
+                    var newChannel = (AnalysisChannel)EditorGUILayout.EnumPopup(
+                        LanguageDisplayer.Instance.GetTranslatedLanguage("channel"), analysisChannel);
+                    
+                    if (newChannel != analysisChannel)
+                    {
+                        analysisChannel = newChannel;
+                        UpdateAnalysisChannel();
+                    }
+                }
+                
+                // Histogram Visualization
+                if (extractionMode == FeatureExtractionMode.HistogramEnhance)
+                {
+                    _showHistogram = EditorGUILayout.BeginFoldoutHeaderGroup(_showHistogram, 
+                        LanguageDisplayer.Instance.GetTranslatedLanguage("histogram_view"));
+                    if (_showHistogram)
+                    {
+                        DrawHistogram();
+                    }
+                    EditorGUILayout.EndFoldoutHeaderGroup();
+                }
+                
+                // Common shader properties
+                GUILayout.Space(10);
+                _showAdvanced = EditorGUILayout.BeginFoldoutHeaderGroup(_showAdvanced, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("advanced_settings"));
+                if (_showAdvanced)
+                {
+                    baseWindow.ShowShaderInfo();
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                
+                // Preview
+                _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
+                if (_showPreview)
+                {
+                    baseWindow.DisplayPassedIamge();
+                    
+                    // Quick actions
+                    EditorGUILayout.BeginHorizontal();
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                    {
+                        baseWindow.CompileShader();
+                        if (extractionMode == FeatureExtractionMode.HistogramEnhance)
+                        {
+                            CalculateHistogram();
+                        }
+                    }
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
+                    {
+                        baseWindow.SaveTexture();
+                    }
+                    EditorGUILayout.EndHorizontal();
                 }
                 EditorGUILayout.EndFoldoutHeaderGroup();
             }
-            
-            // Common shader properties
-            GUILayout.Space(10);
-            _showAdvanced = EditorGUILayout.BeginFoldoutHeaderGroup(_showAdvanced, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("advanced_settings"));
-            if (_showAdvanced)
+            finally
             {
-                baseWindow.ShowShaderInfo();
+                GUILayout.EndScrollView();
             }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            // Preview
-            _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
-            if (_showPreview)
-            {
-                baseWindow.DisplayPassedIamge();
-                
-                // Quick actions
-                EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
-                {
-                    baseWindow.CompileShader();
-                    if (extractionMode == FeatureExtractionMode.HistogramEnhance)
-                    {
-                        CalculateHistogram();
-                    }
-                }
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
-                {
-                    baseWindow.SaveTexture();
-                }
-                EditorGUILayout.EndHorizontal();
-            }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            GUILayout.EndScrollView();
         }
         
         private string GetModeDescription()
@@ -421,6 +429,11 @@ namespace LuticaLab.TextureCocktail
         
         private void DrawHistogram()
         {
+            if (histogramTexture == null)
+            {
+                InitializeHistogram();
+            }
+            
             if (histogramTexture != null)
             {
                 GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("histogram"), EditorStyles.boldLabel);

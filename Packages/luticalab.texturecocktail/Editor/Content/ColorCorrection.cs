@@ -53,68 +53,73 @@ namespace LuticaLab.TextureCocktail
         {
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             
-            // Title
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("color_correction_title"), EditorStyles.boldLabel);
-            GUILayout.Space(5);
-            
-            // Quick Presets
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("quick_presets"), EditorStyles.boldLabel);
-            EditorGUILayout.BeginHorizontal();
-            foreach (var preset in _presets.Keys)
+            try
             {
-                if (GUILayout.Button(preset, GUILayout.Height(25)))
-                {
-                    _presets[preset]();
-                }
-            }
-            EditorGUILayout.EndHorizontal();
-            GUILayout.Space(10);
-            
-            // Mode Selection
-            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("color_grading_mode"), EditorStyles.boldLabel);
-            var newMode = (ColorGradingMode)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("mode"), gradingMode);
-            if (newMode != gradingMode)
-            {
-                gradingMode = newMode;
-                ApplyGradingMode();
-            }
-            
-            // Display mode description
-            EditorGUILayout.HelpBox(GetModeDescription(), MessageType.Info);
-            
-            GUILayout.Space(10);
-            
-            // Basic Settings
-            _showBasicSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showBasicSettings, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("basic_color_settings"));
-            if (_showBasicSettings)
-            {
-                ShowModeSpecificParameters();
-            }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            // Preview
-            _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
-                LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
-            if (_showPreview)
-            {
-                baseWindow.DisplayPassedIamge();
+                // Title
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("color_correction_title"), EditorStyles.boldLabel);
+                GUILayout.Space(5);
                 
-                // Quick actions
+                // Quick Presets
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("quick_presets"), EditorStyles.boldLabel);
                 EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                foreach (var preset in _presets.Keys)
                 {
-                    baseWindow.CompileShader();
-                }
-                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
-                {
-                    baseWindow.SaveTexture();
+                    if (GUILayout.Button(preset, GUILayout.Height(25)))
+                    {
+                        _presets[preset]();
+                    }
                 }
                 EditorGUILayout.EndHorizontal();
+                GUILayout.Space(10);
+                
+                // Mode Selection
+                GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("color_grading_mode"), EditorStyles.boldLabel);
+                var newMode = (ColorGradingMode)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("mode"), gradingMode);
+                if (newMode != gradingMode)
+                {
+                    gradingMode = newMode;
+                    ApplyGradingMode();
+                }
+                
+                // Display mode description
+                EditorGUILayout.HelpBox(GetModeDescription(), MessageType.Info);
+                
+                GUILayout.Space(10);
+                
+                // Basic Settings
+                _showBasicSettings = EditorGUILayout.BeginFoldoutHeaderGroup(_showBasicSettings, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("basic_color_settings"));
+                if (_showBasicSettings)
+                {
+                    ShowModeSpecificParameters();
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                
+                // Preview
+                _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
+                if (_showPreview)
+                {
+                    baseWindow.DisplayPassedIamge();
+                    
+                    // Quick actions
+                    EditorGUILayout.BeginHorizontal();
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
+                    {
+                        baseWindow.CompileShader();
+                    }
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
+                    {
+                        baseWindow.SaveTexture();
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
             }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            
-            GUILayout.EndScrollView();
+            finally
+            {
+                GUILayout.EndScrollView();
+            }
         }
         
         private void ShowModeSpecificParameters()
