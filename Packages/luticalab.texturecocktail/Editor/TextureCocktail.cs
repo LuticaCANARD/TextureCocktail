@@ -29,15 +29,103 @@ namespace LuticaLab.TextureCocktail
         private bool _shaderChanged = false;
         private readonly Dictionary<string,bool> _keywordOnOff = new Dictionary<string, bool>();
         const string _mainTexProperty = "_MainTex";
+
+        virtual protected bool ShaderUpdateDefaultAction
+        {
+            get => true;
+        }
+        
+        // Quick shader selection
+        private static readonly string[] _quickShaderNames = new string[]
+        {
+            "None",
+            "FastImageConverter",
+            "FeatureExtractor", 
+            "ColorCorrection",
+            "TextureBlender",
+            "ArtisticEffects",
+            "ImageFilter (HSVMover)",
+            "ImageSync",
+            "InverseFilter",
+            "NormalMapGenerator"
+        };
+        
+        private static readonly string[] _quickShaderPaths = new string[]
+        {
+            "",
+            "Hidden/FastImageConverter",
+            "Hidden/FeatureExtractor",
+            "Hidden/ColorCorrection",
+            "Hidden/TextureBlender",
+            "Hidden/ArtisticEffects",
+            "Hidden/ImageFilter",
+            "Hidden/ImageSync",
+            "Hidden/ImageEffect",
+            "Hidden/NormalMapGenerator"
+        };
+        
+        private int _selectedQuickShaderIndex = 0;
+        
         private void OnGUI()
         {
             GUILayout.Label("TextureCocktail", EditorStyles.boldLabel);
+            
+            // Quick shader selector
+            GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("quick_shader_select"), EditorStyles.boldLabel);
+            int newShaderIndex = EditorGUILayout.Popup(LanguageDisplayer.Instance.GetTranslatedLanguage("select_shader"), _selectedQuickShaderIndex, _quickShaderNames);
+            if (newShaderIndex != _selectedQuickShaderIndex)
+            {
+                _selectedQuickShaderIndex = newShaderIndex;
+                if (newShaderIndex > 0)
+                {
+                    var shader = Shader.Find(_quickShaderPaths[newShaderIndex]);
+                    if (shader != null)
+                    {
+                        OnShaderChange(shader);
+                    }
+                }
+                else
+                {
+                    OnShaderChange(null);
+                }
+            }
+            
+            GUILayout.Space(5);
 
-            var changed = (Shader)EditorGUILayout.ObjectField(
-                LanguageDisplayer.Instance.GetTranslatedLanguage("apply_shader"), _shader, typeof(Shader), false);
-            OnShaderChange(changed);
+            // Shader field - clickable when assigned, selectable when not
+            EditorGUILayout.BeginHorizontal();
+            if (_shader != null)
+            {
+                // Show as read-only label with click functionality
+                EditorGUILayout.LabelField(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_shader"), _shader.name);
+                if (GUILayout.Button("×", GUILayout.Width(20)))
+                {
+                    OnShaderChange(null);
+                }
+            }
+            else
+            {
+                var changed = (Shader)EditorGUILayout.ObjectField(
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("apply_shader"), _shader, typeof(Shader), false);
+                OnShaderChange(changed);
+            }
+            EditorGUILayout.EndHorizontal();
+            
+            // Target texture field with view button
+            EditorGUILayout.BeginHorizontal();
             var changedTexture = (Texture2D)EditorGUILayout.ObjectField(
                 LanguageDisplayer.Instance.GetTranslatedLanguage("target_texture"), _targetTexture, typeof(Texture2D), false);
+            
+            // Add a button to view the original texture
+            if (_targetTexture != null)
+            {
+                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("view"), GUILayout.Width(50)))
+                {
+                    ImageViewerWindow.ShowWindow(_targetTexture, _targetTexture.name);
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+            
             OnTextureChanged(changedTexture);
 
             if (_valueChanged)
@@ -54,7 +142,40 @@ namespace LuticaLab.TextureCocktail
         //------------- APIs -------------
         public void DisplayPassedIamge()
         {
-            GUILayout.Box(_preview, GUILayout.Width(200), GUILayout.Height(200));
+            // Create a clickable image preview
+            Rect previewRect = GUILayoutUtility.GetRect(200, 200);
+            
+            if (_preview != null)
+            {
+                // Draw the preview texture
+                GUI.DrawTexture(previewRect, _preview, ScaleMode.ScaleToFit);
+                
+                // Add a subtle border
+                GUI.Box(previewRect, "", EditorStyles.helpBox);
+                
+                // Show click hint on hover and handle click
+                if (previewRect.Contains(Event.current.mousePosition))
+                {
+                    EditorGUI.DrawRect(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
+                        new Color(0, 0, 0, 0.7f));
+                    GUI.Label(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
+                        LanguageDisplayer.Instance.GetTranslatedLanguage("click_to_view_fullsize"), 
+                        new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, normal = new GUIStyleState { textColor = Color.white } });
+                    
+                    // Handle mouse click
+                    if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
+                    {
+                        ImageViewerWindow.ShowWindow(_preview, _targetTexture != null ? _targetTexture.name + " - Preview" : "Preview");
+                        Event.current.Use();
+                    }
+                    
+                    Repaint();
+                }
+            }
+            else
+            {
+                GUI.Box(previewRect, LanguageDisplayer.Instance.GetTranslatedLanguage("no_preview_available"));
+            }
         }
         public void DisplayShaderOptions()
         {
@@ -194,8 +315,20 @@ namespace LuticaLab.TextureCocktail
         }
         public void SetMaterialKeyword(string keyword, bool value)
         {
-            if (_keywordOnOff.ContainsKey(keyword)) _keywordOnOff[keyword] = value;
-            this.ApplyShaderDict(keyword);
+            // Update dictionary if keyword exists in it
+            if (_keywordOnOff.ContainsKey(keyword))
+            {
+                _keywordOnOff[keyword] = value;
+            }
+            
+            // Always apply to material if material exists
+            if (_calcMaterial != null)
+            {
+                if (value)
+                    _calcMaterial.EnableKeyword(keyword);
+                else
+                    _calcMaterial.DisableKeyword(keyword);
+            }
         }
         public void CompileShader()
         {
@@ -247,6 +380,9 @@ namespace LuticaLab.TextureCocktail
         }
         private void ApplyShaderDict(string keyword)
         {
+            if (!_keywordOnOff.ContainsKey(keyword))
+                return;
+                
             if (_keywordOnOff[keyword]) _calcMaterial.EnableKeyword(keyword);
             else _calcMaterial.DisableKeyword(keyword);
         }
@@ -317,9 +453,15 @@ namespace LuticaLab.TextureCocktail
             }
             _valueChanged = true;
         }
-        private void OnShaderValueChange()
+        public void OnShaderValueChange()
         {
             _valueChanged = false;
+
+            if(_shaderWindow != null && _shaderWindow.ShaderUpdateDefaultAction == false)
+            {
+                _shaderWindow.OnShaderValueChanged();
+                return;
+            }
             if (_calcMaterial != null)
             {
                 _calcMaterial.SetTexture(_mainTexProperty, _targetTexture);
