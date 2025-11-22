@@ -1,4 +1,4 @@
-Shader "Hidden/ImageFilter"
+Shader "Luticalab/ImageFilter"
 {
     Properties
     {
