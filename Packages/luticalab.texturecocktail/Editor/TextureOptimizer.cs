@@ -127,7 +127,7 @@ namespace LuticaLab.TextureCocktail
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 if (EditorUtility.DisplayCancelableProgressBar(
                     "Scanning Textures",
-                    $"Analysing: {Path.GetFileName(path)}",
+                    $"Analyzing: {Path.GetFileName(path)}",
                     (float)processed / Mathf.Max(total, 1)))
                 {
                     break;
