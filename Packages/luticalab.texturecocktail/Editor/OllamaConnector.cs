@@ -1,44 +1,51 @@
 using System;
 using System.Collections.Generic;
-using System.Net.Http;
-using System.Text;
+using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 
 namespace LuticaLab.TextureCocktail
 {
     /// <summary>
-    /// Editor window that connects to a local Ollama instance and provides a
-    /// text → text+image AI pipeline inside Unity Editor.
+    /// Multi-backend AI connector editor window.
     ///
-    /// Open via: LuticaLab → Ollama AI Connector
+    /// Open via: LuticaLab → AI Connector
     ///
     /// INPUT  : text prompt  +  (optional) Texture2D for vision models
-    /// OUTPUT : text response displayed in the window
+    /// OUTPUT : AI-generated text (and an image preview when the response contains one)
     ///
-    /// Requires a running Ollama server (default: http://localhost:11434).
-    /// Install Ollama at https://ollama.com and pull a model, e.g.:
-    ///   ollama pull llama3
-    ///   ollama pull llava   (for vision / image input)
+    /// Supported backends:
+    ///   • Ollama                  — http://localhost:11434
+    ///   • OpenAI-compatible APIs  — LocalAI, LM Studio, Jan, Kobold.cpp, llama.cpp, etc.
+    ///
+    /// Add more backends by creating a class that inherits <see cref="AiBackendBase"/>
+    /// anywhere in any loaded assembly — the window discovers them automatically.
     /// </summary>
     public class OllamaConnector : EditorWindow
     {
         // ── Menu item ────────────────────────────────────────────────────────
-        [MenuItem("LuticaLab/Ollama AI Connector")]
+        [MenuItem("LuticaLab/AI Connector")]
         public static void ShowWindow()
         {
-            GetWindow<OllamaConnector>("Ollama AI");
+            GetWindow<OllamaConnector>("AI Connector");
         }
 
-        // ── Constants ────────────────────────────────────────────────────────
-        private const string DefaultServerUrl = "http://localhost:11434";
-        private const string PrefsKeyUrl = "TC_Ollama_Url";
-        private const string PrefsKeyModel = "TC_Ollama_Model";
+        // ── Known backends ───────────────────────────────────────────────────
+        private static readonly AiBackendBase[] Backends = new AiBackendBase[]
+        {
+            new OllamaBackend(),
+            new OpenAiCompatibleBackend(),
+        };
+
+        // ── EditorPrefs keys ─────────────────────────────────────────────────
+        private const string PrefsKeyBackend = "TC_AI_Backend";
+        private const string PrefsKeyUrl = "TC_AI_Url";
+        private const string PrefsKeyModel = "TC_AI_Model";
 
         // ── State ────────────────────────────────────────────────────────────
-        private string _serverUrl = DefaultServerUrl;
+        private int _backendIndex = 0;
+        private string _serverUrl = "";
         private string _selectedModel = "";
         private List<string> _availableModels = new List<string>();
         private int _selectedModelIndex = 0;
@@ -48,25 +55,29 @@ namespace LuticaLab.TextureCocktail
         private bool _attachTexture;
 
         private string _responseText = "";
-        private Texture2D _responseImage;   // decoded from base64 if server returns one
+        private Texture2D _responseImage;
         private Vector2 _responseScroll;
 
         private bool _busy;
-        private string _statusMessage = "Ready. Configure server URL and click 'List Models'.";
+        private string _statusMessage = "";
         private CancellationTokenSource _cts;
 
-        private static readonly HttpClient _http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        private AiBackendBase ActiveBackend => Backends[_backendIndex];
 
         // ── Lifecycle ────────────────────────────────────────────────────────
         private void OnEnable()
         {
-            _serverUrl = EditorPrefs.GetString(PrefsKeyUrl, DefaultServerUrl);
+            _backendIndex = Mathf.Clamp(EditorPrefs.GetInt(PrefsKeyBackend, 0), 0, Backends.Length - 1);
+            _serverUrl = EditorPrefs.GetString(PrefsKeyUrl, ActiveBackend.DefaultServerUrl);
             _selectedModel = EditorPrefs.GetString(PrefsKeyModel, "");
+            if (string.IsNullOrEmpty(_statusMessage))
+                _statusMessage = "Ready. Select a backend, configure the server URL, and click 'List Models'.";
         }
 
         private void OnDisable()
         {
             _cts?.Cancel();
+            EditorPrefs.SetInt(PrefsKeyBackend, _backendIndex);
             EditorPrefs.SetString(PrefsKeyUrl, _serverUrl);
             EditorPrefs.SetString(PrefsKeyModel, _selectedModel);
         }
@@ -74,14 +85,14 @@ namespace LuticaLab.TextureCocktail
         // ── GUI ──────────────────────────────────────────────────────────────
         private void OnGUI()
         {
-            GUILayout.Label("Ollama Local AI Connector", EditorStyles.boldLabel);
+            GUILayout.Label("AI Connector", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "Connects to a local Ollama server. Input: text prompt (+ optional image). " +
-                "Output: AI-generated text (and image preview when an image was provided).",
+                "Local AI pipeline: text prompt (+ optional image) → AI-generated text response.\n" +
+                "Supports Ollama and any OpenAI-compatible API (LocalAI, LM Studio, Jan, Kobold…).",
                 MessageType.Info);
 
             EditorGUILayout.Space(4);
-            DrawServerSection();
+            DrawBackendSection();
             EditorGUILayout.Space(4);
             DrawPromptSection();
             EditorGUILayout.Space(4);
@@ -90,25 +101,41 @@ namespace LuticaLab.TextureCocktail
             DrawStatusBar();
         }
 
-        // ── Server section ───────────────────────────────────────────────────
-        private void DrawServerSection()
+        // ── Backend / server section ─────────────────────────────────────────
+        private void DrawBackendSection()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            GUILayout.Label("Server Configuration", EditorStyles.boldLabel);
+            GUILayout.Label("Backend & Server", EditorStyles.boldLabel);
 
+            // Backend selector
+            string[] backendNames = new string[Backends.Length];
+            for (int i = 0; i < Backends.Length; i++)
+                backendNames[i] = Backends[i].DisplayName;
+
+            int newBackendIdx = EditorGUILayout.Popup("Backend", _backendIndex, backendNames);
+            if (newBackendIdx != _backendIndex)
+            {
+                _backendIndex = newBackendIdx;
+                // Pre-fill the default URL for the newly selected backend
+                _serverUrl = ActiveBackend.DefaultServerUrl;
+                _availableModels.Clear();
+                _selectedModel = "";
+            }
+
+            // Server URL + List Models
             EditorGUILayout.BeginHorizontal();
-            _serverUrl = EditorGUILayout.TextField("Ollama URL", _serverUrl);
+            _serverUrl = EditorGUILayout.TextField("Server URL", _serverUrl);
             GUI.enabled = !_busy;
             if (GUILayout.Button("List Models", GUILayout.Width(100)))
                 _ = FetchModelsAsync();
             GUI.enabled = true;
             EditorGUILayout.EndHorizontal();
 
+            // Model selector
             if (_availableModels.Count > 0)
             {
-                string[] modelArray = _availableModels.ToArray();
-                _selectedModelIndex = Mathf.Clamp(_selectedModelIndex, 0, modelArray.Length - 1);
-                int newIdx = EditorGUILayout.Popup("Model", _selectedModelIndex, modelArray);
+                _selectedModelIndex = Mathf.Clamp(_selectedModelIndex, 0, _availableModels.Count - 1);
+                int newIdx = EditorGUILayout.Popup("Model", _selectedModelIndex, _availableModels.ToArray());
                 if (newIdx != _selectedModelIndex)
                 {
                     _selectedModelIndex = newIdx;
@@ -134,24 +161,26 @@ namespace LuticaLab.TextureCocktail
 
             EditorGUILayout.Space(4);
 
-            // Image attachment (for vision models like llava)
-            _attachTexture = EditorGUILayout.Toggle("Attach Texture (vision models)", _attachTexture);
-            if (_attachTexture)
+            // Image attachment — only shown for backends that support it
+            if (ActiveBackend.SupportsImageInput)
             {
-                _inputTexture = (Texture2D)EditorGUILayout.ObjectField(
-                    "Input Texture", _inputTexture, typeof(Texture2D), false);
-
-                if (_inputTexture != null)
+                _attachTexture = EditorGUILayout.Toggle("Attach Texture (vision models)", _attachTexture);
+                if (_attachTexture)
                 {
-                    // Preview thumbnail
-                    Rect thumbRect = GUILayoutUtility.GetRect(80, 80);
-                    GUI.DrawTexture(thumbRect, _inputTexture, ScaleMode.ScaleToFit);
-                }
+                    _inputTexture = (Texture2D)EditorGUILayout.ObjectField(
+                        "Input Texture", _inputTexture, typeof(Texture2D), false);
 
-                EditorGUILayout.HelpBox(
-                    "Requires a vision model (e.g. llava). The texture is converted to PNG and " +
-                    "sent as base64. Make sure the texture has Read/Write enabled in its import settings.",
-                    MessageType.Info);
+                    if (_inputTexture != null)
+                    {
+                        Rect thumbRect = GUILayoutUtility.GetRect(80, 80);
+                        GUI.DrawTexture(thumbRect, _inputTexture, ScaleMode.ScaleToFit);
+                    }
+
+                    EditorGUILayout.HelpBox(
+                        "Requires a vision model (e.g. llava for Ollama, or a multimodal model for OpenAI-compatible backends). " +
+                        "The texture is converted to PNG and sent as base64.",
+                        MessageType.Info);
+                }
             }
 
             EditorGUILayout.Space(4);
@@ -160,7 +189,7 @@ namespace LuticaLab.TextureCocktail
             GUI.enabled = !_busy && !string.IsNullOrWhiteSpace(_promptText) && !string.IsNullOrEmpty(_selectedModel);
             if (GUILayout.Button("Send Prompt", GUILayout.Height(32)))
                 _ = SendPromptAsync();
-            GUI.enabled = !_busy;
+            GUI.enabled = _busy;
             if (GUILayout.Button("Cancel", GUILayout.Width(80), GUILayout.Height(32)))
                 _cts?.Cancel();
             GUI.enabled = true;
@@ -188,7 +217,7 @@ namespace LuticaLab.TextureCocktail
             }
             EditorGUILayout.EndScrollView();
 
-            // If input texture was attached, show a combined image+text panel
+            // Input texture context
             if (_attachTexture && _inputTexture != null && !string.IsNullOrEmpty(_responseText))
             {
                 EditorGUILayout.Space(4);
@@ -197,7 +226,7 @@ namespace LuticaLab.TextureCocktail
                 GUI.DrawTexture(imgRect, _inputTexture, ScaleMode.ScaleToFit);
             }
 
-            // If the response contained a base64 image, show it
+            // Response image (if the backend returned one)
             if (_responseImage != null)
             {
                 EditorGUILayout.Space(4);
@@ -226,23 +255,28 @@ namespace LuticaLab.TextureCocktail
 
         private void DrawStatusBar()
         {
-            MessageType msgType = _busy ? MessageType.Info :
-                (_statusMessage.StartsWith("Error") ? MessageType.Error : MessageType.Info);
+            bool isError = _statusMessage.StartsWith("Error");
+            MessageType msgType = isError ? MessageType.Error : MessageType.Info;
             EditorGUILayout.HelpBox(_statusMessage, msgType);
             if (_busy)
-                EditorGUILayout.HelpBox("⏳ Waiting for Ollama response…", MessageType.Info);
+                EditorGUILayout.HelpBox("⏳ Waiting for response…", MessageType.Info);
         }
 
-        // ── Async helpers ────────────────────────────────────────────────────
+        // ── Async operations ─────────────────────────────────────────────────
 
-        private async Task FetchModelsAsync()
+        private async System.Threading.Tasks.Task FetchModelsAsync()
         {
             SetBusy(true, "Fetching model list…");
             try
             {
-                string url = _serverUrl.TrimEnd('/') + "/api/tags";
-                string json = await _http.GetStringAsync(url);
-                ParseModelList(json);
+                var models = await ActiveBackend.FetchModelsAsync(_serverUrl);
+                _availableModels = models;
+
+                int idx = _availableModels.IndexOf(_selectedModel);
+                _selectedModelIndex = idx >= 0 ? idx : 0;
+                if (_availableModels.Count > 0)
+                    _selectedModel = _availableModels[_selectedModelIndex];
+
                 SetStatus($"Found {_availableModels.Count} model(s).");
             }
             catch (Exception ex)
@@ -255,7 +289,7 @@ namespace LuticaLab.TextureCocktail
             }
         }
 
-        private async Task SendPromptAsync()
+        private async System.Threading.Tasks.Task SendPromptAsync()
         {
             if (string.IsNullOrWhiteSpace(_promptText) || string.IsNullOrEmpty(_selectedModel))
                 return;
@@ -265,229 +299,47 @@ namespace LuticaLab.TextureCocktail
             _responseText = "";
             _responseImage = null;
 
-            try
+            var request = new AiRequest
             {
-                string body = BuildRequestBody();
-                string url = _serverUrl.TrimEnd('/') + "/api/generate";
+                Prompt = _promptText,
+                AttachedImage = (_attachTexture && ActiveBackend.SupportsImageInput) ? _inputTexture : null,
+            };
 
-                var content = new StringContent(body, Encoding.UTF8, "application/json");
-                var response = await _http.PostAsync(url, content, _cts.Token);
-                response.EnsureSuccessStatusCode();
+            AiResponse result = await ActiveBackend.SendPromptAsync(_serverUrl, _selectedModel, request, _cts.Token);
 
-                string responseJson = await response.Content.ReadAsStringAsync();
-                ParseGenerateResponse(responseJson);
-
+            if (result.Success)
+            {
+                _responseText = result.Text;
+                _responseImage = result.Image;
                 SetStatus("Response received.");
             }
-            catch (OperationCanceledException)
+            else
             {
-                SetStatus("Request cancelled.");
+                SetStatus($"Error: {result.Error}");
             }
-            catch (Exception ex)
-            {
-                SetStatus($"Error: {ex.Message}");
-            }
-            finally
-            {
-                SetBusy(false);
-            }
+
+            SetBusy(false);
+            EditorApplication.delayCall += Repaint;
         }
 
-        // ── JSON helpers (manual, no extra deps) ─────────────────────────────
-
-        private string BuildRequestBody()
-        {
-            var sb = new StringBuilder();
-            sb.Append("{");
-            sb.Append($"\"model\":{JsonString(_selectedModel)},");
-            sb.Append($"\"prompt\":{JsonString(_promptText)},");
-            sb.Append("\"stream\":false");
-
-            if (_attachTexture && _inputTexture != null)
-            {
-                string b64 = TextureToBase64(_inputTexture);
-                if (!string.IsNullOrEmpty(b64))
-                {
-                    sb.Append($",\"images\":[{JsonString(b64)}]");
-                }
-            }
-
-            sb.Append("}");
-            return sb.ToString();
-        }
-
-        private void ParseModelList(string json)
-        {
-            _availableModels.Clear();
-            // Parse "models":[{"name":"..."},...] — lightweight manual parse
-            int modelsIdx = json.IndexOf("\"models\"", StringComparison.Ordinal);
-            if (modelsIdx < 0) return;
-
-            int start = json.IndexOf('[', modelsIdx);
-            int end = json.IndexOf(']', start);
-            if (start < 0 || end < 0) return;
-
-            string segment = json.Substring(start, end - start + 1);
-            int pos = 0;
-            while (true)
-            {
-                int nameIdx = segment.IndexOf("\"name\"", pos, StringComparison.Ordinal);
-                if (nameIdx < 0) break;
-                int colon = segment.IndexOf(':', nameIdx);
-                int q1 = segment.IndexOf('"', colon + 1);
-                int q2 = segment.IndexOf('"', q1 + 1);
-                if (q1 < 0 || q2 < 0) break;
-                string name = segment.Substring(q1 + 1, q2 - q1 - 1);
-                _availableModels.Add(name);
-                pos = q2 + 1;
-            }
-
-            // Restore persisted selection
-            int idx = _availableModels.IndexOf(_selectedModel);
-            _selectedModelIndex = idx >= 0 ? idx : 0;
-            if (_availableModels.Count > 0)
-                _selectedModel = _availableModels[_selectedModelIndex];
-        }
-
-        private void ParseGenerateResponse(string json)
-        {
-            // Extract "response":"..."
-            _responseText = ExtractJsonStringField(json, "response");
-
-            // Some models/endpoints may return "images":["base64..."]
-            int imgIdx = json.IndexOf("\"images\"", StringComparison.Ordinal);
-            if (imgIdx >= 0)
-            {
-                int arrStart = json.IndexOf('[', imgIdx);
-                int q1 = json.IndexOf('"', arrStart);
-                int q2 = json.IndexOf('"', q1 + 1);
-                if (q1 >= 0 && q2 > q1)
-                {
-                    string b64 = json.Substring(q1 + 1, q2 - q1 - 1);
-                    _responseImage = Base64ToTexture(b64);
-                }
-            }
-
-            Repaint();
-        }
-
-        private static string ExtractJsonStringField(string json, string fieldName)
-        {
-            int idx = json.IndexOf($"\"{fieldName}\"", StringComparison.Ordinal);
-            if (idx < 0) return "";
-            int colon = json.IndexOf(':', idx);
-            int q1 = json.IndexOf('"', colon + 1);
-            if (q1 < 0) return "";
-            var sb = new StringBuilder();
-            bool escape = false;
-            for (int i = q1 + 1; i < json.Length; i++)
-            {
-                char c = json[i];
-                if (escape)
-                {
-                    switch (c)
-                    {
-                        case 'n': sb.Append('\n'); break;
-                        case 't': sb.Append('\t'); break;
-                        case 'r': sb.Append('\r'); break;
-                        default: sb.Append(c); break;
-                    }
-                    escape = false;
-                }
-                else if (c == '\\') { escape = true; }
-                else if (c == '"') break;
-                else sb.Append(c);
-            }
-            return sb.ToString();
-        }
-
-        private static string JsonString(string s)
-        {
-            if (s == null) return "null";
-            var sb = new StringBuilder("\"");
-            foreach (char c in s)
-            {
-                switch (c)
-                {
-                    case '"': sb.Append("\\\""); break;
-                    case '\\': sb.Append("\\\\"); break;
-                    case '\n': sb.Append("\\n"); break;
-                    case '\r': sb.Append("\\r"); break;
-                    case '\t': sb.Append("\\t"); break;
-                    default: sb.Append(c); break;
-                }
-            }
-            sb.Append('"');
-            return sb.ToString();
-        }
-
-        // ── Texture helpers ──────────────────────────────────────────────────
-
-        private static string TextureToBase64(Texture2D tex)
-        {
-            try
-            {
-                // Ensure read/write; if texture is not readable, render it first
-                byte[] pngBytes;
-                if (tex.isReadable)
-                {
-                    pngBytes = tex.EncodeToPNG();
-                }
-                else
-                {
-                    var rt = new RenderTexture(tex.width, tex.height, 0, RenderTextureFormat.ARGB32);
-                    Graphics.Blit(tex, rt);
-                    RenderTexture.active = rt;
-                    var readable = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, false);
-                    readable.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-                    readable.Apply();
-                    RenderTexture.active = null;
-                    rt.Release();
-                    pngBytes = readable.EncodeToPNG();
-                    UnityEngine.Object.DestroyImmediate(readable);
-                }
-                return Convert.ToBase64String(pngBytes);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[OllamaConnector] Could not encode texture: {ex.Message}");
-                return null;
-            }
-        }
-
-        private static Texture2D Base64ToTexture(string base64)
-        {
-            try
-            {
-                byte[] bytes = Convert.FromBase64String(base64);
-                var tex = new Texture2D(2, 2);
-                tex.LoadImage(bytes);
-                return tex;
-            }
-            catch
-            {
-                return null;
-            }
-        }
+        // ── Helpers ──────────────────────────────────────────────────────────
 
         private void SaveResponseImage()
         {
             if (_responseImage == null) return;
-            string path = EditorUtility.SaveFilePanel("Save Response Image", "Assets", "ollama_response.png", "png");
+            string path = EditorUtility.SaveFilePanel("Save Response Image", "Assets", "ai_response.png", "png");
             if (!string.IsNullOrEmpty(path))
             {
-                System.IO.File.WriteAllBytes(path, _responseImage.EncodeToPNG());
+                File.WriteAllBytes(path, _responseImage.EncodeToPNG());
                 AssetDatabase.Refresh();
                 SetStatus($"Image saved to {path}");
             }
         }
 
-        // ── Thread-safe UI update helpers ────────────────────────────────────
         private void SetBusy(bool busy, string msg = null)
         {
             _busy = busy;
             if (msg != null) _statusMessage = msg;
-            // Repaint must happen on the main thread — use EditorApplication.delayCall
             EditorApplication.delayCall += Repaint;
         }
 
