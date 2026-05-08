@@ -29,6 +29,13 @@ namespace LuticaLab.TextureCocktail
         private bool _shaderChanged = false;
         private readonly Dictionary<string,bool> _keywordOnOff = new Dictionary<string, bool>();
         const string _mainTexProperty = "_MainTex";
+        private readonly List<Vector2> _polygonMaskPoints = new List<Vector2>();
+        private bool _polygonMaskClosed = false;
+        private bool _polygonMaskEnabled = true;
+        private int _draggingPolygonPoint = -1;
+        private Texture2D _polygonMaskTexture;
+        private Material _polygonCompositeMaterial;
+        private const string _polygonCompositeShaderName = "Hidden/TextureCocktail/PolygonMaskComposite";
 
         virtual protected bool ShaderUpdateDefaultAction
         {
@@ -144,11 +151,15 @@ namespace LuticaLab.TextureCocktail
         {
             // Create a clickable image preview
             Rect previewRect = GUILayoutUtility.GetRect(200, 200);
+            Event currentEvent = Event.current;
             
             if (_preview != null)
             {
                 // Draw the preview texture
                 GUI.DrawTexture(previewRect, _preview, ScaleMode.ScaleToFit);
+                Rect imageDrawRect = GetImageDrawRect(previewRect, _preview.width, _preview.height);
+                DrawPolygonMaskOverlay(imageDrawRect);
+                HandlePolygonMaskInteraction(imageDrawRect, currentEvent);
                 
                 // Add a subtle border
                 GUI.Box(previewRect, "", EditorStyles.helpBox);
@@ -159,11 +170,11 @@ namespace LuticaLab.TextureCocktail
                     EditorGUI.DrawRect(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
                         new Color(0, 0, 0, 0.7f));
                     GUI.Label(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
-                        LanguageDisplayer.Instance.GetTranslatedLanguage("click_to_view_fullsize"), 
+                        "Polygon: Left click add points, click first point to close, drag points after close, right click clear", 
                         new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, normal = new GUIStyleState { textColor = Color.white } });
                     
-                    // Handle mouse click
-                    if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
+                    // Handle mouse double click
+                    if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && Event.current.clickCount == 2)
                     {
                         ImageViewerWindow.ShowWindow(_preview, _targetTexture != null ? _targetTexture.name + " - Preview" : "Preview");
                         Event.current.Use();
@@ -171,6 +182,20 @@ namespace LuticaLab.TextureCocktail
                     
                     Repaint();
                 }
+
+                EditorGUILayout.BeginHorizontal();
+                bool newPolygonMaskEnabled = EditorGUILayout.ToggleLeft("Enable Polygon Mask", _polygonMaskEnabled);
+                if (newPolygonMaskEnabled != _polygonMaskEnabled)
+                {
+                    _polygonMaskEnabled = newPolygonMaskEnabled;
+                    CompileShader();
+                }
+                if (GUILayout.Button("Reset Polygon", GUILayout.Width(120)))
+                {
+                    ClearPolygonMask();
+                    CompileShader();
+                }
+                EditorGUILayout.EndHorizontal();
             }
             else
             {
@@ -357,17 +382,42 @@ namespace LuticaLab.TextureCocktail
         }
         public void CompileShader()
         {
-            if (_calcMaterial != null)
+            if (_calcMaterial != null && _targetTexture != null)
             {
+                EnsurePreviewTexture();
                 _calcMaterial.shader = _shader;
                 foreach (var keyword in _keywordOnOff)
                 {
                     ApplyShaderDict(keyword.Key);
                 }
                 ShaderUtil.CompilePass(_calcMaterial, 0);
-                RenderTexture.active = _preview;
-                Graphics.Blit(_targetTexture, _preview, _calcMaterial);
-                RenderTexture.active = null;
+                if (_polygonMaskEnabled && _polygonMaskClosed && _polygonMaskPoints.Count >= 3)
+                {
+                    UpdatePolygonMaskTexture();
+                    EnsurePolygonCompositeMaterial();
+                    if (_polygonCompositeMaterial != null && _polygonMaskTexture != null)
+                    {
+                        RenderTexture processedTexture = RenderTexture.GetTemporary(_targetTexture.width, _targetTexture.height, 0, RenderTextureFormat.ARGB32);
+                        Graphics.Blit(_targetTexture, processedTexture, _calcMaterial);
+                        _polygonCompositeMaterial.SetTexture("_OriginalTex", _targetTexture);
+                        _polygonCompositeMaterial.SetTexture("_ProcessedTex", processedTexture);
+                        _polygonCompositeMaterial.SetTexture("_MaskTex", _polygonMaskTexture);
+                        Graphics.Blit(null, _preview, _polygonCompositeMaterial);
+                        RenderTexture.ReleaseTemporary(processedTexture);
+                    }
+                    else
+                    {
+                        RenderTexture.active = _preview;
+                        Graphics.Blit(_targetTexture, _preview, _calcMaterial);
+                        RenderTexture.active = null;
+                    }
+                }
+                else
+                {
+                    RenderTexture.active = _preview;
+                    Graphics.Blit(_targetTexture, _preview, _calcMaterial);
+                    RenderTexture.active = null;
+                }
             }
             else
             {
@@ -507,13 +557,300 @@ namespace LuticaLab.TextureCocktail
             {
                 return;
             }
-            _preview = new RenderTexture(_targetTexture.width, _targetTexture.height, 0, RenderTextureFormat.ARGB32);
-            _preview.Create();
+            EnsurePreviewTexture();
             if(_shaderWindow != null)
             {
                 _shaderWindow.OnShaderValueChanged();
             }
             CompileShader();
+        }
+
+        private Rect GetImageDrawRect(Rect previewRect, int textureWidth, int textureHeight)
+        {
+            float scaleX = previewRect.width / textureWidth;
+            float scaleY = previewRect.height / textureHeight;
+            float scale = Mathf.Min(scaleX, scaleY);
+            float scaledWidth = textureWidth * scale;
+            float scaledHeight = textureHeight * scale;
+            float x = previewRect.x + (previewRect.width - scaledWidth) * 0.5f;
+            float y = previewRect.y + (previewRect.height - scaledHeight) * 0.5f;
+            return new Rect(x, y, scaledWidth, scaledHeight);
+        }
+
+        private void DrawPolygonMaskOverlay(Rect imageDrawRect)
+        {
+            if (_polygonMaskPoints.Count == 0)
+            {
+                return;
+            }
+
+            Handles.BeginGUI();
+            Color previousColor = Handles.color;
+            Handles.color = _polygonMaskEnabled ? new Color(0.1f, 1f, 0.4f, 0.95f) : new Color(0.8f, 0.8f, 0.8f, 0.85f);
+
+            for (int i = 0; i < _polygonMaskPoints.Count; i++)
+            {
+                Vector2 currentPoint = MaskPointToGUI(_polygonMaskPoints[i], imageDrawRect);
+                Vector2 nextPoint;
+                if (i == _polygonMaskPoints.Count - 1)
+                {
+                    if (!_polygonMaskClosed)
+                    {
+                        continue;
+                    }
+                    nextPoint = MaskPointToGUI(_polygonMaskPoints[0], imageDrawRect);
+                }
+                else
+                {
+                    nextPoint = MaskPointToGUI(_polygonMaskPoints[i + 1], imageDrawRect);
+                }
+                Handles.DrawAAPolyLine(2.0f, currentPoint, nextPoint);
+            }
+
+            for (int i = 0; i < _polygonMaskPoints.Count; i++)
+            {
+                Vector2 point = MaskPointToGUI(_polygonMaskPoints[i], imageDrawRect);
+                float size = i == 0 && !_polygonMaskClosed ? 5f : 4f;
+                Handles.DrawSolidDisc(point, Vector3.forward, size);
+            }
+
+            Handles.color = previousColor;
+            Handles.EndGUI();
+        }
+
+        private void HandlePolygonMaskInteraction(Rect imageDrawRect, Event currentEvent)
+        {
+            if (!_polygonMaskEnabled)
+            {
+                _draggingPolygonPoint = -1;
+                return;
+            }
+            if (!imageDrawRect.Contains(currentEvent.mousePosition))
+            {
+                if (currentEvent.type == EventType.MouseUp)
+                {
+                    _draggingPolygonPoint = -1;
+                }
+                return;
+            }
+
+            if (currentEvent.type == EventType.MouseDown && currentEvent.button == 1)
+            {
+                ClearPolygonMask();
+                CompileShader();
+                currentEvent.Use();
+                return;
+            }
+
+            if (currentEvent.type == EventType.MouseDown && currentEvent.button == 0)
+            {
+                if (_polygonMaskClosed)
+                {
+                    int pointIndex = GetNearestPolygonPointIndex(currentEvent.mousePosition, imageDrawRect, 10f);
+                    if (pointIndex >= 0)
+                    {
+                        _draggingPolygonPoint = pointIndex;
+                        currentEvent.Use();
+                        return;
+                    }
+                }
+                else
+                {
+                    if (_polygonMaskPoints.Count >= 3)
+                    {
+                        Vector2 firstPoint = MaskPointToGUI(_polygonMaskPoints[0], imageDrawRect);
+                        if (Vector2.Distance(currentEvent.mousePosition, firstPoint) <= 10f)
+                        {
+                            _polygonMaskClosed = true;
+                            CompileShader();
+                            currentEvent.Use();
+                            return;
+                        }
+                    }
+                    _polygonMaskPoints.Add(MouseToMaskPoint(currentEvent.mousePosition, imageDrawRect));
+                    CompileShader();
+                    currentEvent.Use();
+                    return;
+                }
+            }
+
+            if (currentEvent.type == EventType.MouseDrag && currentEvent.button == 0 && _draggingPolygonPoint >= 0)
+            {
+                _polygonMaskPoints[_draggingPolygonPoint] = MouseToMaskPoint(currentEvent.mousePosition, imageDrawRect);
+                CompileShader();
+                currentEvent.Use();
+                return;
+            }
+
+            if (currentEvent.type == EventType.MouseUp && currentEvent.button == 0)
+            {
+                _draggingPolygonPoint = -1;
+            }
+        }
+
+        private int GetNearestPolygonPointIndex(Vector2 mousePosition, Rect imageDrawRect, float threshold)
+        {
+            for (int i = 0; i < _polygonMaskPoints.Count; i++)
+            {
+                Vector2 pointGui = MaskPointToGUI(_polygonMaskPoints[i], imageDrawRect);
+                if (Vector2.Distance(pointGui, mousePosition) <= threshold)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private Vector2 MouseToMaskPoint(Vector2 mousePosition, Rect imageDrawRect)
+        {
+            float normalizedX = Mathf.Clamp01((mousePosition.x - imageDrawRect.x) / imageDrawRect.width);
+            float normalizedYFromTop = Mathf.Clamp01((mousePosition.y - imageDrawRect.y) / imageDrawRect.height);
+            return new Vector2(normalizedX, 1f - normalizedYFromTop);
+        }
+
+        private Vector2 MaskPointToGUI(Vector2 normalizedPoint, Rect imageDrawRect)
+        {
+            float x = imageDrawRect.x + Mathf.Clamp01(normalizedPoint.x) * imageDrawRect.width;
+            float y = imageDrawRect.y + (1f - Mathf.Clamp01(normalizedPoint.y)) * imageDrawRect.height;
+            return new Vector2(x, y);
+        }
+
+        private void ClearPolygonMask()
+        {
+            _polygonMaskPoints.Clear();
+            _polygonMaskClosed = false;
+            _draggingPolygonPoint = -1;
+        }
+
+        private void EnsurePreviewTexture()
+        {
+            if (_targetTexture == null)
+            {
+                return;
+            }
+            if (_preview != null && (_preview.width != _targetTexture.width || _preview.height != _targetTexture.height))
+            {
+                _preview.Release();
+                DestroyImmediate(_preview);
+                _preview = null;
+            }
+            if (_preview == null)
+            {
+                _preview = new RenderTexture(_targetTexture.width, _targetTexture.height, 0, RenderTextureFormat.ARGB32);
+                _preview.Create();
+            }
+        }
+
+        private void EnsurePolygonCompositeMaterial()
+        {
+            if (_polygonCompositeMaterial != null)
+            {
+                return;
+            }
+            Shader polygonCompositeShader = Shader.Find(_polygonCompositeShaderName);
+            if (polygonCompositeShader == null)
+            {
+                Debug.LogWarning($"Polygon composite shader not found: {_polygonCompositeShaderName}");
+                return;
+            }
+            _polygonCompositeMaterial = new Material(polygonCompositeShader);
+        }
+
+        private void UpdatePolygonMaskTexture()
+        {
+            if (_targetTexture == null || !_polygonMaskClosed || _polygonMaskPoints.Count < 3)
+            {
+                return;
+            }
+
+            int width = _targetTexture.width;
+            int height = _targetTexture.height;
+            if (_polygonMaskTexture == null || _polygonMaskTexture.width != width || _polygonMaskTexture.height != height)
+            {
+                if (_polygonMaskTexture != null)
+                {
+                    DestroyImmediate(_polygonMaskTexture);
+                }
+                _polygonMaskTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+                _polygonMaskTexture.wrapMode = TextureWrapMode.Clamp;
+                _polygonMaskTexture.filterMode = FilterMode.Point;
+            }
+
+            Vector2[] pixelPoints = new Vector2[_polygonMaskPoints.Count];
+            int minX = width;
+            int maxX = 0;
+            int minY = height;
+            int maxY = 0;
+
+            for (int i = 0; i < _polygonMaskPoints.Count; i++)
+            {
+                int px = Mathf.Clamp(Mathf.RoundToInt(_polygonMaskPoints[i].x * (width - 1)), 0, width - 1);
+                int py = Mathf.Clamp(Mathf.RoundToInt(_polygonMaskPoints[i].y * (height - 1)), 0, height - 1);
+                pixelPoints[i] = new Vector2(px, py);
+                minX = Mathf.Min(minX, px);
+                maxX = Mathf.Max(maxX, px);
+                minY = Mathf.Min(minY, py);
+                maxY = Mathf.Max(maxY, py);
+            }
+
+            Color32[] pixels = new Color32[width * height];
+            Color32 insideColor = new Color32(255, 255, 255, 255);
+
+            minX = Mathf.Clamp(minX, 0, width - 1);
+            maxX = Mathf.Clamp(maxX, 0, width - 1);
+            minY = Mathf.Clamp(minY, 0, height - 1);
+            maxY = Mathf.Clamp(maxY, 0, height - 1);
+
+            for (int y = minY; y <= maxY; y++)
+            {
+                for (int x = minX; x <= maxX; x++)
+                {
+                    if (IsPointInsidePolygon(new Vector2(x + 0.5f, y + 0.5f), pixelPoints))
+                    {
+                        pixels[y * width + x] = insideColor;
+                    }
+                }
+            }
+
+            _polygonMaskTexture.SetPixels32(pixels);
+            _polygonMaskTexture.Apply(false, false);
+        }
+
+        private bool IsPointInsidePolygon(Vector2 point, Vector2[] polygonPoints)
+        {
+            bool isInside = false;
+            for (int i = 0, j = polygonPoints.Length - 1; i < polygonPoints.Length; j = i++)
+            {
+                Vector2 pointI = polygonPoints[i];
+                Vector2 pointJ = polygonPoints[j];
+                bool intersects = ((pointI.y > point.y) != (pointJ.y > point.y)) &&
+                                  (point.x < (pointJ.x - pointI.x) * (point.y - pointI.y) / (pointJ.y - pointI.y + Mathf.Epsilon) + pointI.x);
+                if (intersects)
+                {
+                    isInside = !isInside;
+                }
+            }
+            return isInside;
+        }
+
+        private void OnDisable()
+        {
+            if (_preview != null)
+            {
+                _preview.Release();
+                DestroyImmediate(_preview);
+                _preview = null;
+            }
+            if (_polygonMaskTexture != null)
+            {
+                DestroyImmediate(_polygonMaskTexture);
+                _polygonMaskTexture = null;
+            }
+            if (_polygonCompositeMaterial != null)
+            {
+                DestroyImmediate(_polygonCompositeMaterial);
+                _polygonCompositeMaterial = null;
+            }
         }
 
     }
