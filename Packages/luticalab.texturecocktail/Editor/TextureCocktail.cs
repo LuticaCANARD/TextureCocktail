@@ -169,8 +169,9 @@ namespace LuticaLab.TextureCocktail
                 {
                     EditorGUI.DrawRect(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
                         new Color(0, 0, 0, 0.7f));
+                    string localizedHint = LanguageDisplayer.Instance.GetTranslatedLanguage("click_to_view_fullsize");
                     GUI.Label(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
-                        "Polygon: Left click add points, click first point to close, drag points after close, right click clear", 
+                        $"{localizedHint} (Double-click) | Polygon: Left click add points, click first point to close, drag points after close, right click clear", 
                         new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, normal = new GUIStyleState { textColor = Color.white } });
                     
                     // Handle mouse double click
@@ -773,7 +774,7 @@ namespace LuticaLab.TextureCocktail
                 }
                 _polygonMaskTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
                 _polygonMaskTexture.wrapMode = TextureWrapMode.Clamp;
-                _polygonMaskTexture.filterMode = FilterMode.Point;
+                _polygonMaskTexture.filterMode = FilterMode.Bilinear;
             }
 
             Vector2[] pixelPoints = new Vector2[_polygonMaskPoints.Count];
@@ -823,8 +824,13 @@ namespace LuticaLab.TextureCocktail
             {
                 Vector2 pointI = polygonPoints[i];
                 Vector2 pointJ = polygonPoints[j];
+                float edgeDeltaY = pointJ.y - pointI.y;
+                if (Mathf.Abs(edgeDeltaY) < Mathf.Epsilon)
+                {
+                    continue;
+                }
                 bool intersects = ((pointI.y > point.y) != (pointJ.y > point.y)) &&
-                                  (point.x < (pointJ.x - pointI.x) * (point.y - pointI.y) / (pointJ.y - pointI.y + Mathf.Epsilon) + pointI.x);
+                                  (point.x < (pointJ.x - pointI.x) * (point.y - pointI.y) / edgeDeltaY + pointI.x);
                 if (intersects)
                 {
                     isInside = !isInside;
