@@ -37,6 +37,7 @@ namespace LuticaLab.TextureCocktail
         private Texture2D _polygonMaskTexture;
         private Material _polygonCompositeMaterial;
         private const string _polygonCompositeShaderName = "Hidden/TextureCocktail/PolygonMaskComposite";
+        private const RenderTextureFormat _previewTextureFormat = RenderTextureFormat.ARGB32;
 
         virtual protected bool ShaderUpdateDefaultAction
         {
@@ -172,14 +173,14 @@ namespace LuticaLab.TextureCocktail
                         new Color(0, 0, 0, 0.7f));
                     string localizedHint = LanguageDisplayer.Instance.GetTranslatedLanguage("click_to_view_fullsize");
                     GUI.Label(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
-                        $"{localizedHint} x2", 
+                        $"{localizedHint} ×2", 
                         new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, normal = new GUIStyleState { textColor = Color.white } });
                     
                     // Handle mouse double click
-                    if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && Event.current.clickCount == 2)
+                    if (currentEvent.type == EventType.MouseDown && currentEvent.button == 0 && currentEvent.clickCount == 2)
                     {
                         ImageViewerWindow.ShowWindow(_preview, _targetTexture != null ? _targetTexture.name + " - Preview" : "Preview");
-                        Event.current.Use();
+                        currentEvent.Use();
                     }
                     
                     Repaint();
@@ -399,7 +400,7 @@ namespace LuticaLab.TextureCocktail
                     EnsurePolygonCompositeMaterial();
                     if (_polygonCompositeMaterial != null && _polygonMaskTexture != null)
                     {
-                        RenderTexture processedTexture = RenderTexture.GetTemporary(_targetTexture.width, _targetTexture.height, 0, RenderTextureFormat.ARGB32);
+                        RenderTexture processedTexture = RenderTexture.GetTemporary(_targetTexture.width, _targetTexture.height, 0, _previewTextureFormat);
                         try
                         {
                             Graphics.Blit(_targetTexture, processedTexture, _calcMaterial);
@@ -751,7 +752,7 @@ namespace LuticaLab.TextureCocktail
             }
             if (_preview == null)
             {
-                _preview = new RenderTexture(_targetTexture.width, _targetTexture.height, 0, RenderTextureFormat.ARGB32);
+                _preview = new RenderTexture(_targetTexture.width, _targetTexture.height, 0, _previewTextureFormat);
                 _preview.Create();
             }
         }
