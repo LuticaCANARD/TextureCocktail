@@ -33,6 +33,7 @@ namespace LuticaLab.TextureCocktail
         private bool _polygonMaskClosed = false;
         private bool _polygonMaskEnabled = true;
         private int _draggingPolygonPoint = -1;
+        private bool _polygonMaskDirty = false;
         private Texture2D _polygonMaskTexture;
         private Material _polygonCompositeMaterial;
         private const string _polygonCompositeShaderName = "Hidden/TextureCocktail/PolygonMaskComposite";
@@ -171,7 +172,7 @@ namespace LuticaLab.TextureCocktail
                         new Color(0, 0, 0, 0.7f));
                     string localizedHint = LanguageDisplayer.Instance.GetTranslatedLanguage("click_to_view_fullsize");
                     GUI.Label(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
-                        $"{localizedHint} (Double-click) | Polygon: Left click add points, click first point to close, drag points after close, right click clear", 
+                        $"{localizedHint} x2", 
                         new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, normal = new GUIStyleState { textColor = Color.white } });
                     
                     // Handle mouse double click
@@ -399,12 +400,18 @@ namespace LuticaLab.TextureCocktail
                     if (_polygonCompositeMaterial != null && _polygonMaskTexture != null)
                     {
                         RenderTexture processedTexture = RenderTexture.GetTemporary(_targetTexture.width, _targetTexture.height, 0, RenderTextureFormat.ARGB32);
-                        Graphics.Blit(_targetTexture, processedTexture, _calcMaterial);
-                        _polygonCompositeMaterial.SetTexture("_OriginalTex", _targetTexture);
-                        _polygonCompositeMaterial.SetTexture("_ProcessedTex", processedTexture);
-                        _polygonCompositeMaterial.SetTexture("_MaskTex", _polygonMaskTexture);
-                        Graphics.Blit(null, _preview, _polygonCompositeMaterial);
-                        RenderTexture.ReleaseTemporary(processedTexture);
+                        try
+                        {
+                            Graphics.Blit(_targetTexture, processedTexture, _calcMaterial);
+                            _polygonCompositeMaterial.SetTexture("_OriginalTex", _targetTexture);
+                            _polygonCompositeMaterial.SetTexture("_ProcessedTex", processedTexture);
+                            _polygonCompositeMaterial.SetTexture("_MaskTex", _polygonMaskTexture);
+                            Graphics.Blit(null, _preview, _polygonCompositeMaterial);
+                        }
+                        finally
+                        {
+                            RenderTexture.ReleaseTemporary(processedTexture);
+                        }
                     }
                     else
                     {
@@ -624,6 +631,7 @@ namespace LuticaLab.TextureCocktail
             if (!_polygonMaskEnabled)
             {
                 _draggingPolygonPoint = -1;
+                _polygonMaskDirty = false;
                 return;
             }
             if (!imageDrawRect.Contains(currentEvent.mousePosition))
@@ -678,14 +686,19 @@ namespace LuticaLab.TextureCocktail
             if (currentEvent.type == EventType.MouseDrag && currentEvent.button == 0 && _draggingPolygonPoint >= 0)
             {
                 _polygonMaskPoints[_draggingPolygonPoint] = MouseToMaskPoint(currentEvent.mousePosition, imageDrawRect);
-                CompileShader();
+                _polygonMaskDirty = true;
                 currentEvent.Use();
                 return;
             }
 
             if (currentEvent.type == EventType.MouseUp && currentEvent.button == 0)
             {
+                if (_draggingPolygonPoint >= 0 && _polygonMaskDirty)
+                {
+                    CompileShader();
+                }
                 _draggingPolygonPoint = -1;
+                _polygonMaskDirty = false;
             }
         }
 
@@ -721,6 +734,7 @@ namespace LuticaLab.TextureCocktail
             _polygonMaskPoints.Clear();
             _polygonMaskClosed = false;
             _draggingPolygonPoint = -1;
+            _polygonMaskDirty = false;
         }
 
         private void EnsurePreviewTexture()
