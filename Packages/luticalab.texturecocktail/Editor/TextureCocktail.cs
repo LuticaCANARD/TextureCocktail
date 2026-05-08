@@ -50,6 +50,7 @@ namespace LuticaLab.TextureCocktail
         private const string _polygonCompositeShaderName = "Hidden/TextureCocktail/PolygonMaskComposite";
         private const RenderTextureFormat _previewTextureFormat = RenderTextureFormat.ARGB32;
         private const float _polygonVertexHitDistance = 10f;
+        private Color32[] _maskPixels;
 
         virtual protected bool ShaderUpdateDefaultAction
         {
@@ -864,7 +865,7 @@ namespace LuticaLab.TextureCocktail
                 {
                     continue;
                 }
-                if (IsPointInsidePolygon(maskPoint, shape.Points.ToArray()))
+                if (IsPointInsidePolygon(maskPoint, shape.Points))
                 {
                     return s;
                 }
@@ -1011,7 +1012,16 @@ namespace LuticaLab.TextureCocktail
                 _polygonMaskTexture.filterMode = FilterMode.Bilinear;
             }
 
-            Color32[] pixels = new Color32[width * height];
+            int totalPixels = width * height;
+            if (_maskPixels == null || _maskPixels.Length != totalPixels)
+            {
+                _maskPixels = new Color32[totalPixels];
+            }
+            else
+            {
+                Array.Clear(_maskPixels, 0, totalPixels);
+            }
+            Color32[] pixels = _maskPixels;
             Color32 insideColor = new Color32(255, 255, 255, 255);
 
             for (int s = 0; s < _polygonMaskShapes.Count; s++)
@@ -1065,10 +1075,11 @@ namespace LuticaLab.TextureCocktail
             _polygonMaskTexture.Apply(false, false);
         }
 
-        private bool IsPointInsidePolygon(Vector2 point, Vector2[] polygonPoints)
+        private bool IsPointInsidePolygon(Vector2 point, IReadOnlyList<Vector2> polygonPoints)
         {
             bool isInside = false;
-            for (int i = 0, j = polygonPoints.Length - 1; i < polygonPoints.Length; j = i++)
+            int count = polygonPoints.Count;
+            for (int i = 0, j = count - 1; i < count; j = i++)
             {
                 Vector2 pointI = polygonPoints[i];
                 Vector2 pointJ = polygonPoints[j];
