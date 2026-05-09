@@ -156,7 +156,36 @@
             "normal_map_settings": "Normal Map Settings",
             "normal_strength": "Normal Strength",
             "height_scale": "Height Scale",
-            "normal_map_info": "Converts height map (grayscale) to normal map for 3D surface details."
+            "normal_map_info": "Converts height map (grayscale) to normal map for 3D surface details.",
+
+            "mesh_preview_open": "Open Mesh Preview",
+            "mesh_preview_title": "TC Mesh Preview",
+            "mesh_preview_source": "Source",
+            "mesh_preview_source_connected": "Connected to: {0}",
+            "mesh_preview_source_none": "Not connected to a TextureCocktail window.",
+            "mesh_preview_source_reconnect": "Reconnect",
+            "mesh_preview_source_help": "Open the TextureCocktail window first, then reconnect.",
+            "mesh_preview_renderer_section": "Renderer",
+            "mesh_preview_renderer": "Renderer",
+            "mesh_preview_renderer_help": "Drag a MeshRenderer or SkinnedMeshRenderer here.",
+            "mesh_preview_no_materials": "Selected renderer has no materials.",
+            "mesh_preview_material_slot": "Material Slot",
+            "mesh_preview_no_tex_props": "Selected material has no texture properties.",
+            "mesh_preview_texture_property": "Texture Property",
+            "mesh_preview_auto_sync_property": "Auto-detect property by target texture",
+            "mesh_preview_highlight_section": "Highlight",
+            "mesh_preview_highlight_color": "Highlight Color",
+            "mesh_preview_highlight_intensity": "Intensity",
+            "mesh_preview_pulse_speed": "Pulse Speed",
+            "mesh_preview_pulse_strength": "Pulse Strength",
+            "mesh_preview_base_dim": "Dim Outside Mask",
+            "mesh_preview_3d_section": "3D Preview",
+            "mesh_preview_auto_rotate": "Auto Rotate",
+            "mesh_preview_distance": "Distance",
+            "mesh_preview_no_mesh": "No mesh resolved. Assign a Renderer with a Mesh.",
+            "mesh_preview_drag_hint": "Drag to rotate. Scroll to zoom.",
+            "mesh_preview_scene_section": "Scene View",
+            "mesh_preview_show_in_scene": "Show highlight in Scene View"
         }
-    
+
 }
