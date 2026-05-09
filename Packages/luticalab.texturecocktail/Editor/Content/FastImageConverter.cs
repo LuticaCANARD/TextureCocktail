@@ -11,7 +11,8 @@ namespace LuticaLab.TextureCocktail
         EdgeDetection,
         Blur,
         Sharpen,
-        Point
+        Point,
+        Bilinear
     }
     
     public class FastImageConverter : TextureCocktailContent

@@ -1009,7 +1009,7 @@ namespace LuticaLab.TextureCocktail
                 }
                 _polygonMaskTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
                 _polygonMaskTexture.wrapMode = TextureWrapMode.Clamp;
-                _polygonMaskTexture.filterMode = FilterMode.Bilinear;
+                _polygonMaskTexture.filterMode = UnityEngine.FilterMode.Bilinear;
             }
 
             int totalPixels = width * height;
