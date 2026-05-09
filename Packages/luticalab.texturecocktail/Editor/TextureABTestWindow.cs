@@ -529,24 +529,34 @@ namespace LuticaLab.TextureCocktail
             }
         }
 
+        private static GUIStyle _overlayLabelStyle;
+        private static GUIStyle _centeredLabelStyle;
+
         private static void DrawLabel(Rect rect, string text)
         {
             EditorGUI.DrawRect(rect, new Color(0f, 0f, 0f, 0.55f));
-            var style = new GUIStyle(EditorStyles.miniLabel)
+            if (_overlayLabelStyle == null)
             {
-                normal = { textColor = Color.white },
-                alignment = TextAnchor.MiddleLeft
-            };
-            GUI.Label(new Rect(rect.x + 4, rect.y, rect.width - 8, rect.height), text, style);
+                _overlayLabelStyle = new GUIStyle(EditorStyles.miniLabel)
+                {
+                    normal = { textColor = Color.white },
+                    alignment = TextAnchor.MiddleLeft
+                };
+            }
+            GUI.Label(new Rect(rect.x + 4, rect.y, rect.width - 8, rect.height), text, _overlayLabelStyle);
         }
 
         private static GUIStyle CenteredLabelStyle()
         {
-            return new GUIStyle(EditorStyles.boldLabel)
+            if (_centeredLabelStyle == null)
             {
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(0.85f, 0.85f, 0.85f) }
-            };
+                _centeredLabelStyle = new GUIStyle(EditorStyles.boldLabel)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = new Color(0.85f, 0.85f, 0.85f) }
+                };
+            }
+            return _centeredLabelStyle;
         }
 
         private static string GetLocalized(string key)
