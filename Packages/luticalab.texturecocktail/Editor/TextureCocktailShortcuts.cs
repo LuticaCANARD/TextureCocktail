@@ -94,6 +94,13 @@ namespace LuticaLab.TextureCocktail
             return Selection.activeObject is Texture2D;
         }
         
+        // Open A/B test window directly (no preview yet)
+        [MenuItem("LuticaLab/Quick Access/Open A/B Test Window")]
+        public static void OpenABTestWindowEmpty()
+        {
+            TextureABTestWindow.ShowWindow(null, null, "Texture");
+        }
+
         // Copy texture settings
         private static Material copiedMaterial;
         
