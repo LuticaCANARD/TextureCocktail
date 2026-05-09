@@ -53,27 +53,53 @@ namespace LuticaLab
         }
         void LoadLanguageDict(LuticaLabSupportLanguage lang)
         {
-            var jsonload = AssetDatabase.LoadAssetAtPath($"Packages/luticalab.core/Languages/{lang}.json", typeof(TextAsset)) as TextAsset;
-            if (jsonload != null)
-            {
+            string assetPath = $"Packages/luticalab.core/Languages/{lang}.json";
+            string json = null;
 
-                if (jsonload.text != null)
-                {
-                    var json = jsonload.text;
-                    var dict = JObject.Parse(json)["data"] as JObject;
-                    foreach (var item in dict)
-                    {
-                        _languageDictionary[item.Key.ToString()] = item.Value.ToString();
-                    }
-                }
-                else
-                {
-                    Debug.LogError($"Failed to load language file for {lang}");
-                }
+            var jsonload = AssetDatabase.LoadAssetAtPath(assetPath, typeof(TextAsset)) as TextAsset;
+            if (jsonload != null && jsonload.text != null)
+            {
+                json = jsonload.text;
             }
             else
             {
+                // Fallback: AssetDatabase may not be ready during early domain reload.
+                try
+                {
+                    string fullPath = System.IO.Path.GetFullPath(assetPath);
+                    if (System.IO.File.Exists(fullPath))
+                    {
+                        json = System.IO.File.ReadAllText(fullPath);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"Language fallback read failed for {lang}: {e.Message}");
+                }
+            }
+
+            if (string.IsNullOrEmpty(json))
+            {
                 Debug.LogError($"Failed to load language bundle for {lang}");
+                return;
+            }
+
+            try
+            {
+                var dict = JObject.Parse(json)["data"] as JObject;
+                if (dict == null)
+                {
+                    Debug.LogError($"Language file {lang} missing 'data' object");
+                    return;
+                }
+                foreach (var item in dict)
+                {
+                    _languageDictionary[item.Key.ToString()] = item.Value.ToString();
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to parse language file for {lang}: {e.Message}");
             }
         }
         public bool IsSupportedLanguage(SystemLanguage lang)

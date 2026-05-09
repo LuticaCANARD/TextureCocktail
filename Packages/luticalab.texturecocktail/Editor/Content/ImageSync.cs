@@ -12,6 +12,7 @@ namespace LuticaLab.TextureCocktail
         Sub,
         Mul
     }
+    [TextureCocktailShader("Luticalab/ImageSync", DisplayName = "Image Sync", Category = "Effects")]
     public class ImageSync : TextureCocktailContent
     {
         public override bool UseDefaultLayout { get => false; }

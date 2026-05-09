@@ -23,6 +23,7 @@ namespace LuticaLab.TextureCocktail
         Luminance = 4
     }
     
+    [TextureCocktailShader("Hidden/FeatureExtractor", DisplayName = "Feature Extractor", Category = "Analysis")]
     public class FeatureExtractor : TextureCocktailContent
     {
         public override bool UseDefaultLayout { get => false; }

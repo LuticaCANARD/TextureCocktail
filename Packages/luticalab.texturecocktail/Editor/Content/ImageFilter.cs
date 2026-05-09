@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace LuticaLab.TextureCocktail
 {
+    [TextureCocktailShader("Luticalab/ImageFilter", DisplayName = "HSV Adjustment", Category = "Color")]
     public class ImageFilter : TextureCocktailContent
     {
         public override bool UseDefaultLayout { get => false; }
