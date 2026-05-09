@@ -15,6 +15,7 @@ namespace LuticaLab.TextureCocktail
         Bilinear
     }
     
+    [TextureCocktailShader("Hidden/FastImageConverter", DisplayName = "Fast Image Converter", Category = "Filters")]
     public class FastImageConverter : TextureCocktailContent
     {
         public override bool UseDefaultLayout { get => false; }

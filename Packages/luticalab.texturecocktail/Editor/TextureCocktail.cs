@@ -63,61 +63,103 @@ namespace LuticaLab.TextureCocktail
         public bool HasActivePolygonMask => _polygonMaskEnabled && HasAnyClosedPolygon();
         public event System.Action OnPreviewUpdated;
 
-        // Quick shader selection
-        private static readonly string[] _quickShaderNames = new string[]
+        internal bool PolygonMaskEnabled
         {
-            "None",
-            "FastImageConverter",
-            "FeatureExtractor", 
-            "ColorCorrection",
-            "TextureBlender",
-            "ArtisticEffects",
-            "ImageFilter (HSVMover)",
-            "ImageSync",
-            "InverseFilter",
-            "NormalMapGenerator"
-        };
-        
-        private static readonly string[] _quickShaderPaths = new string[]
+            get => _polygonMaskEnabled;
+            set
+            {
+                if (_polygonMaskEnabled == value) return;
+                _polygonMaskEnabled = value;
+                CompileShader();
+            }
+        }
+
+        internal void GetPolygonShapeCounts(out int closedCount, out int openCount)
         {
-            "",
-            "Hidden/FastImageConverter",
-            "Hidden/FeatureExtractor",
-            "Hidden/ColorCorrection",
-            "Hidden/TextureBlender",
-            "Luticalab/ArtisticEffects",
-            "Luticalab/ImageFilter",
-            "Luticalab/ImageSync",
-            "Luticalab/ImageEffect",
-            "Luticalab/NormalMapGenerator"
-        };
-        
+            closedCount = 0;
+            openCount = 0;
+            for (int i = 0; i < _polygonMaskShapes.Count; i++)
+            {
+                if (_polygonMaskShapes[i].Closed) closedCount++; else openCount++;
+            }
+        }
+
         private int _selectedQuickShaderIndex = 0;
-        
+        private bool _showAdvancedShaderPicker = false;
+        private string[] _quickShaderLabelsCache;
+        private ITextureCocktailShaderPackage[] _quickShaderPackagesCache;
+
+        private void RebuildQuickShaderCache()
+        {
+            var packages = TextureCocktailShaderRegistry.All;
+            _quickShaderPackagesCache = new ITextureCocktailShaderPackage[packages.Count];
+            _quickShaderLabelsCache = new string[packages.Count + 1];
+            _quickShaderLabelsCache[0] = LanguageDisplayer.Instance.GetTranslatedLanguage("quick_shader_none");
+            if (string.IsNullOrEmpty(_quickShaderLabelsCache[0]) || _quickShaderLabelsCache[0] == "quick_shader_none")
+            {
+                _quickShaderLabelsCache[0] = "(None)";
+            }
+            for (int i = 0; i < packages.Count; i++)
+            {
+                _quickShaderPackagesCache[i] = packages[i];
+                string cat = string.IsNullOrEmpty(packages[i].Category) ? "" : packages[i].Category + "/";
+                _quickShaderLabelsCache[i + 1] = cat + packages[i].DisplayName;
+            }
+        }
+
+        private int FindPackageIndexForShader(Shader shader)
+        {
+            if (shader == null || _quickShaderPackagesCache == null) return 0;
+            for (int i = 0; i < _quickShaderPackagesCache.Length; i++)
+            {
+                if (_quickShaderPackagesCache[i].Shader == shader) return i + 1;
+            }
+            return 0;
+        }
+
         private void OnGUI()
         {
             GUILayout.Label("TextureCocktail", EditorStyles.boldLabel);
-            
-            // Quick shader selector
+
+            // Quick shader selector — registry-driven
+            if (_quickShaderLabelsCache == null) RebuildQuickShaderCache();
+
             GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("quick_shader_select"), EditorStyles.boldLabel);
-            int newShaderIndex = EditorGUILayout.Popup(LanguageDisplayer.Instance.GetTranslatedLanguage("select_shader"), _selectedQuickShaderIndex, _quickShaderNames);
+            EditorGUILayout.BeginHorizontal();
+            int newShaderIndex = EditorGUILayout.Popup(
+                LanguageDisplayer.Instance.GetTranslatedLanguage("select_shader"),
+                _selectedQuickShaderIndex, _quickShaderLabelsCache);
+            if (GUILayout.Button("⟳", EditorStyles.miniButton, GUILayout.Width(24)))
+            {
+                TextureCocktailShaderRegistry.Refresh();
+                RebuildQuickShaderCache();
+                _selectedQuickShaderIndex = FindPackageIndexForShader(_shader);
+            }
+            EditorGUILayout.EndHorizontal();
             if (newShaderIndex != _selectedQuickShaderIndex)
             {
                 _selectedQuickShaderIndex = newShaderIndex;
-                if (newShaderIndex > 0)
+                if (newShaderIndex > 0 && _quickShaderPackagesCache != null && newShaderIndex - 1 < _quickShaderPackagesCache.Length)
                 {
-                    var shader = Shader.Find(_quickShaderPaths[newShaderIndex]);
-                    if (shader != null)
-                    {
-                        OnShaderChange(shader);
-                    }
+                    OnShaderChange(_quickShaderPackagesCache[newShaderIndex - 1].Shader);
                 }
                 else
                 {
                     OnShaderChange(null);
                 }
             }
-            
+
+            // Show package description when one is selected
+            if (_selectedQuickShaderIndex > 0 && _quickShaderPackagesCache != null
+                && _selectedQuickShaderIndex - 1 < _quickShaderPackagesCache.Length)
+            {
+                var pkg = _quickShaderPackagesCache[_selectedQuickShaderIndex - 1];
+                if (!string.IsNullOrEmpty(pkg.Description))
+                {
+                    EditorGUILayout.HelpBox(pkg.Description, MessageType.None);
+                }
+            }
+
             GUILayout.Space(5);
 
             // Shader field - clickable when assigned, selectable when not
@@ -131,13 +173,37 @@ namespace LuticaLab.TextureCocktail
                     OnShaderChange(null);
                 }
             }
-            else
-            {
-                var changed = (Shader)EditorGUILayout.ObjectField(
-                    LanguageDisplayer.Instance.GetTranslatedLanguage("apply_shader"), _shader, typeof(Shader), false);
-                OnShaderChange(changed);
-            }
             EditorGUILayout.EndHorizontal();
+
+            // Advanced: assign an arbitrary shader (validated against the registry)
+            _showAdvancedShaderPicker = EditorGUILayout.Foldout(
+                _showAdvancedShaderPicker,
+                LanguageDisplayer.Instance.GetTranslatedLanguage("advanced_shader_picker"));
+            if (_showAdvancedShaderPicker)
+            {
+                EditorGUI.indentLevel++;
+                var advancedShader = (Shader)EditorGUILayout.ObjectField(
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("apply_shader"),
+                    _shader, typeof(Shader), false);
+                if (advancedShader != _shader)
+                {
+                    if (advancedShader != null && !TextureCocktailShaderRegistry.IsRegistered(advancedShader))
+                    {
+                        Debug.LogWarning(string.Format(
+                            LanguageDisplayer.Instance.GetTranslatedLanguage("shader_not_registered_warning"),
+                            advancedShader.name));
+                    }
+                    OnShaderChange(advancedShader);
+                    _selectedQuickShaderIndex = FindPackageIndexForShader(advancedShader);
+                }
+                if (_shader != null && !TextureCocktailShaderRegistry.IsRegistered(_shader))
+                {
+                    EditorGUILayout.HelpBox(
+                        LanguageDisplayer.Instance.GetTranslatedLanguage("shader_not_registered_help"),
+                        MessageType.Warning);
+                }
+                EditorGUI.indentLevel--;
+            }
             
             // Target texture field with view button
             EditorGUILayout.BeginHorizontal();
@@ -184,60 +250,51 @@ namespace LuticaLab.TextureCocktail
                 
                 // Add a subtle border
                 GUI.Box(previewRect, "", EditorStyles.helpBox);
-                
-                // Show click hint on hover and handle click
-                if (previewRect.Contains(Event.current.mousePosition))
-                {
-                    EditorGUI.DrawRect(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
-                        new Color(0, 0, 0, 0.7f));
-                    string localizedHint = LanguageDisplayer.Instance.GetTranslatedLanguage("click_to_view_fullsize");
-                    GUI.Label(new Rect(previewRect.x, previewRect.y + previewRect.height - 20, previewRect.width, 20), 
-                        $"{localizedHint} ×2", 
-                        new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, normal = new GUIStyleState { textColor = Color.white } });
-                    
-                    // Handle mouse double click
-                    if (currentEvent.type == EventType.MouseDown && currentEvent.button == 0 && currentEvent.clickCount == 2)
-                    {
-                        ImageViewerWindow.ShowWindow(_preview, _targetTexture != null ? _targetTexture.name + " - Preview" : "Preview");
-                        currentEvent.Use();
-                    }
-                    
-                    Repaint();
-                }
 
                 EditorGUILayout.BeginHorizontal();
-                bool newPolygonMaskEnabled = EditorGUILayout.ToggleLeft("Enable Polygon Mask", _polygonMaskEnabled);
+                bool newPolygonMaskEnabled = EditorGUILayout.ToggleLeft(
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_mask_enable"),
+                    _polygonMaskEnabled);
                 if (newPolygonMaskEnabled != _polygonMaskEnabled)
                 {
-                    _polygonMaskEnabled = newPolygonMaskEnabled;
-                    CompileShader();
+                    PolygonMaskEnabled = newPolygonMaskEnabled;
                 }
-                if (GUILayout.Button("Finish Polygon", GUILayout.Width(120)))
+                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_finish"),
+                    GUILayout.Width(120)))
                 {
                     if (FinalizeOpenPolygon())
                     {
                         CompileShader();
                     }
                 }
-                if (GUILayout.Button("Reset Polygons", GUILayout.Width(120)))
+                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_reset"),
+                    GUILayout.Width(120)))
                 {
                     ClearPolygonMask();
                     CompileShader();
+                }
+                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("open_fullscreen_edit"), GUILayout.Width(160)))
+                {
+                    ImageViewerWindow.ShowWindow(this, _targetTexture != null ? _targetTexture.name + " - Preview" : "Preview");
                 }
                 if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("mesh_preview_open"), GUILayout.Width(160)))
                 {
                     MeshPreviewWindow.ShowWindowFor(this);
                 }
+                using (new EditorGUI.DisabledScope(_targetTexture == null))
+                {
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("ab_open_button"), GUILayout.Width(140)))
+                    {
+                        OpenABTestWindow();
+                    }
+                }
                 EditorGUILayout.EndHorizontal();
                 if (_polygonMaskShapes.Count > 0)
                 {
-                    int closedCount = 0;
-                    int openCount = 0;
-                    foreach (var shape in _polygonMaskShapes)
-                    {
-                        if (shape.Closed) closedCount++; else openCount++;
-                    }
-                    EditorGUILayout.LabelField($"Polygons: {closedCount} closed, {openCount} open. Drag inside a polygon to move it.", EditorStyles.miniLabel);
+                    GetPolygonShapeCounts(out int closedCount, out int openCount);
+                    EditorGUILayout.LabelField(string.Format(
+                        LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_count_label_with_hint"),
+                        closedCount, openCount), EditorStyles.miniLabel);
                 }
             }
             else
@@ -382,10 +439,12 @@ namespace LuticaLab.TextureCocktail
             );
             if (!string.IsNullOrEmpty(path))
             {
+                RenderTexture prevActive = RenderTexture.active;
                 RenderTexture.active = _preview;
                 Texture2D textureToSave = new(_preview.width, _preview.height, TextureFormat.RGBA32, false);
                 textureToSave.ReadPixels(new Rect(0, 0, _preview.width, _preview.height), 0, 0);
                 textureToSave.Apply();
+                RenderTexture.active = prevActive;
                 System.IO.File.WriteAllBytes(path, textureToSave.EncodeToPNG());
 
                 AssetDatabase.Refresh();
@@ -440,6 +499,23 @@ namespace LuticaLab.TextureCocktail
                     _calcMaterial.DisableKeyword(keyword);
             }
         }
+        private int ResolveActivePassIndex()
+        {
+            // Priority: per-shader content window's PassOrder (runtime/UI-driven, e.g. FeatureExtractor),
+            // falling back to the registered package's PassIndex, then 0.
+            if (_shaderWindow != null)
+            {
+                int pass = _shaderWindow.PassOrder;
+                if (pass >= 0) return pass;
+            }
+            if (_shader != null)
+            {
+                var pkg = TextureCocktailShaderRegistry.FindByShader(_shader);
+                if (pkg != null && pkg.PassIndex >= 0) return pkg.PassIndex;
+            }
+            return 0;
+        }
+
         public void CompileShader()
         {
             if (_calcMaterial != null && _targetTexture != null)
@@ -450,7 +526,9 @@ namespace LuticaLab.TextureCocktail
                 {
                     ApplyShaderDict(keyword.Key);
                 }
-                ShaderUtil.CompilePass(_calcMaterial, 0);
+                int passIndex = ResolveActivePassIndex();
+                ShaderUtil.CompilePass(_calcMaterial, passIndex);
+                RenderTexture prevActive = RenderTexture.active;
                 if (_polygonMaskEnabled && HasAnyClosedPolygon())
                 {
                     UpdatePolygonMaskTexture();
@@ -460,29 +538,28 @@ namespace LuticaLab.TextureCocktail
                         RenderTexture processedTexture = RenderTexture.GetTemporary(_targetTexture.width, _targetTexture.height, 0, _previewTextureFormat);
                         try
                         {
-                            Graphics.Blit(_targetTexture, processedTexture, _calcMaterial);
+                            Graphics.Blit(_targetTexture, processedTexture, _calcMaterial, passIndex);
                             _polygonCompositeMaterial.SetTexture("_OriginalTex", _targetTexture);
                             _polygonCompositeMaterial.SetTexture("_ProcessedTex", processedTexture);
                             _polygonCompositeMaterial.SetTexture("_MaskTex", _polygonMaskTexture);
-                            Graphics.Blit(null, _preview, _polygonCompositeMaterial);
+                            Graphics.Blit(_targetTexture, _preview, _polygonCompositeMaterial);
                         }
                         finally
                         {
                             RenderTexture.ReleaseTemporary(processedTexture);
+                            RenderTexture.active = prevActive;
                         }
                     }
                     else
                     {
-                        RenderTexture.active = _preview;
-                        Graphics.Blit(_targetTexture, _preview, _calcMaterial);
-                        RenderTexture.active = null;
+                        Graphics.Blit(_targetTexture, _preview, _calcMaterial, passIndex);
+                        RenderTexture.active = prevActive;
                     }
                 }
                 else
                 {
-                    RenderTexture.active = _preview;
-                    Graphics.Blit(_targetTexture, _preview, _calcMaterial);
-                    RenderTexture.active = null;
+                    Graphics.Blit(_targetTexture, _preview, _calcMaterial, passIndex);
+                    RenderTexture.active = prevActive;
                 }
                 OnPreviewUpdated?.Invoke();
             }
@@ -639,7 +716,7 @@ namespace LuticaLab.TextureCocktail
             CompileShader();
         }
 
-        private Rect GetImageDrawRect(Rect previewRect, int textureWidth, int textureHeight)
+        internal Rect GetImageDrawRect(Rect previewRect, int textureWidth, int textureHeight)
         {
             float scaleX = previewRect.width / textureWidth;
             float scaleY = previewRect.height / textureHeight;
@@ -651,7 +728,7 @@ namespace LuticaLab.TextureCocktail
             return new Rect(x, y, scaledWidth, scaledHeight);
         }
 
-        private void DrawPolygonMaskOverlay(Rect imageDrawRect)
+        internal void DrawPolygonMaskOverlay(Rect imageDrawRect)
         {
             if (_polygonMaskShapes.Count == 0)
             {
@@ -705,7 +782,7 @@ namespace LuticaLab.TextureCocktail
             Handles.EndGUI();
         }
 
-        private void HandlePolygonMaskInteraction(Rect imageDrawRect, Event currentEvent)
+        internal void HandlePolygonMaskInteraction(Rect imageDrawRect, Event currentEvent)
         {
             if (!_polygonMaskEnabled)
             {
@@ -740,13 +817,32 @@ namespace LuticaLab.TextureCocktail
 
             if (currentEvent.type == EventType.MouseDown && currentEvent.button == 1)
             {
-                if (DeletePolygonAtMouse(currentEvent.mousePosition, imageDrawRect))
+                if (currentEvent.clickCount >= 2)
                 {
-                    CompileShader();
+                    if (DeletePolygonAtMouse(currentEvent.mousePosition, imageDrawRect))
+                    {
+                        CompileShader();
+                    }
+                    else
+                    {
+                        ClearPolygonMask();
+                        CompileShader();
+                    }
+                    currentEvent.Use();
+                    return;
                 }
-                else
+                int openIndexRC = GetOpenPolygonIndex();
+                if (openIndexRC >= 0)
                 {
-                    ClearPolygonMask();
+                    var openShapeRC = _polygonMaskShapes[openIndexRC];
+                    if (openShapeRC.Points.Count > 0)
+                    {
+                        openShapeRC.Points.RemoveAt(openShapeRC.Points.Count - 1);
+                    }
+                    if (openShapeRC.Points.Count == 0)
+                    {
+                        _polygonMaskShapes.RemoveAt(openIndexRC);
+                    }
                     CompileShader();
                 }
                 currentEvent.Use();
@@ -755,6 +851,26 @@ namespace LuticaLab.TextureCocktail
 
             if (currentEvent.type == EventType.MouseDown && currentEvent.button == 0)
             {
+                if (currentEvent.clickCount >= 2)
+                {
+                    int dummyShape, dummyVertex;
+                    bool nearVertex = TryGetNearestPolygonVertex(currentEvent.mousePosition, imageDrawRect, _polygonVertexHitDistance, out dummyShape, out dummyVertex);
+                    if (!nearVertex)
+                    {
+                        int edgeShape, edgeStart;
+                        if (TryGetNearestPolygonEdge(currentEvent.mousePosition, imageDrawRect, _polygonVertexHitDistance, true, out edgeShape, out edgeStart))
+                        {
+                            var edgeShapeRef = _polygonMaskShapes[edgeShape];
+                            int nextIdx = (edgeStart + 1) % edgeShapeRef.Points.Count;
+                            Vector2 midpoint = (edgeShapeRef.Points[edgeStart] + edgeShapeRef.Points[nextIdx]) * 0.5f;
+                            edgeShapeRef.Points.Insert(edgeStart + 1, midpoint);
+                            CompileShader();
+                            currentEvent.Use();
+                            return;
+                        }
+                    }
+                }
+
                 int hitShapeIndex, hitVertexIndex;
                 if (TryGetNearestPolygonVertex(currentEvent.mousePosition, imageDrawRect, _polygonVertexHitDistance, out hitShapeIndex, out hitVertexIndex))
                 {
@@ -779,7 +895,39 @@ namespace LuticaLab.TextureCocktail
                 int openIndex = GetOpenPolygonIndex();
                 if (openIndex >= 0)
                 {
-                    _polygonMaskShapes[openIndex].Points.Add(MouseToMaskPoint(currentEvent.mousePosition, imageDrawRect));
+                    var openShape = _polygonMaskShapes[openIndex];
+                    if (openShape.Points.Count >= 3)
+                    {
+                        Vector2 lastPointGui = MaskPointToGUI(openShape.Points[openShape.Points.Count - 1], imageDrawRect);
+                        if (Vector2.Distance(lastPointGui, currentEvent.mousePosition) <= _polygonVertexHitDistance)
+                        {
+                            openShape.Closed = true;
+                            CompileShader();
+                            currentEvent.Use();
+                            return;
+                        }
+                    }
+
+                    int splitShape, splitEdgeStart;
+                    if (TryGetNearestPolygonEdge(currentEvent.mousePosition, imageDrawRect, _polygonVertexHitDistance, false, out splitShape, out splitEdgeStart))
+                    {
+                        var matchedShape = _polygonMaskShapes[splitShape];
+                        int next = (splitEdgeStart + 1) % matchedShape.Points.Count;
+                        Vector2 a = MaskPointToGUI(matchedShape.Points[splitEdgeStart], imageDrawRect);
+                        Vector2 b = MaskPointToGUI(matchedShape.Points[next], imageDrawRect);
+                        Vector2 projected = ProjectPointOnSegment(currentEvent.mousePosition, a, b);
+                        Vector2 projectedMaskPos = MouseToMaskPoint(projected, imageDrawRect);
+                        matchedShape.Points.Insert(splitEdgeStart + 1, projectedMaskPos);
+                        if (openShape.Points.Count <= 1)
+                        {
+                            _polygonMaskShapes.Remove(openShape);
+                        }
+                        CompileShader();
+                        currentEvent.Use();
+                        return;
+                    }
+
+                    openShape.Points.Add(MouseToMaskPoint(currentEvent.mousePosition, imageDrawRect));
                     CompileShader();
                     currentEvent.Use();
                     return;
@@ -891,6 +1039,53 @@ namespace LuticaLab.TextureCocktail
             return shapeIndex >= 0;
         }
 
+        private bool TryGetNearestPolygonEdge(Vector2 mousePosition, Rect imageDrawRect, float threshold, bool closedOnly, out int shapeIndex, out int edgeStartIndex)
+        {
+            float bestDistance = threshold;
+            shapeIndex = -1;
+            edgeStartIndex = -1;
+            for (int s = 0; s < _polygonMaskShapes.Count; s++)
+            {
+                var shape = _polygonMaskShapes[s];
+                if (closedOnly && !shape.Closed) continue;
+                if (shape.Points.Count < 2) continue;
+                int edgeCount = shape.Closed ? shape.Points.Count : shape.Points.Count - 1;
+                for (int i = 0; i < edgeCount; i++)
+                {
+                    int next = (i + 1) % shape.Points.Count;
+                    Vector2 a = MaskPointToGUI(shape.Points[i], imageDrawRect);
+                    Vector2 b = MaskPointToGUI(shape.Points[next], imageDrawRect);
+                    float dist = DistancePointToSegment(mousePosition, a, b);
+                    if (dist <= bestDistance)
+                    {
+                        bestDistance = dist;
+                        shapeIndex = s;
+                        edgeStartIndex = i;
+                    }
+                }
+            }
+            return shapeIndex >= 0;
+        }
+
+        private static float DistancePointToSegment(Vector2 p, Vector2 a, Vector2 b)
+        {
+            Vector2 ab = b - a;
+            float abLenSq = ab.sqrMagnitude;
+            if (abLenSq < 1e-6f) return Vector2.Distance(p, a);
+            float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / abLenSq);
+            Vector2 proj = a + ab * t;
+            return Vector2.Distance(p, proj);
+        }
+
+        private static Vector2 ProjectPointOnSegment(Vector2 p, Vector2 a, Vector2 b)
+        {
+            Vector2 ab = b - a;
+            float abLenSq = ab.sqrMagnitude;
+            if (abLenSq < 1e-6f) return a;
+            float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / abLenSq);
+            return a + ab * t;
+        }
+
         private int FindClosedPolygonContainingMaskPoint(Vector2 maskPoint)
         {
             for (int s = _polygonMaskShapes.Count - 1; s >= 0; s--)
@@ -940,7 +1135,7 @@ namespace LuticaLab.TextureCocktail
             return false;
         }
 
-        private bool FinalizeOpenPolygon()
+        internal bool FinalizeOpenPolygon()
         {
             int openIndex = GetOpenPolygonIndex();
             if (openIndex < 0)
@@ -987,7 +1182,7 @@ namespace LuticaLab.TextureCocktail
             return new Vector2(x, y);
         }
 
-        private void ClearPolygonMask()
+        internal void ClearPolygonMask()
         {
             _polygonMaskShapes.Clear();
             ResetPolygonInteractionState();

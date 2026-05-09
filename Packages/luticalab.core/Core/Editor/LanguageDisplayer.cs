@@ -53,29 +53,81 @@ namespace LuticaLab
         }
         void LoadLanguageDict(LuticaLabSupportLanguage lang)
         {
-            var jsonload = AssetDatabase.LoadAssetAtPath($"Packages/luticalab.core/Languages/{lang}.json", typeof(TextAsset)) as TextAsset;
-            if (jsonload != null)
-            {
+            string assetPath = $"Packages/luticalab.core/Languages/{lang}.json";
+            string json = null;
 
-                if (jsonload.text != null)
-                {
-                    var json = jsonload.text;
-                    var dict = JObject.Parse(json)["data"] as JObject;
-                    foreach (var item in dict)
-                    {
-                        _languageDictionary[item.Key.ToString()] = item.Value.ToString();
-                    }
-                }
-                else
-                {
-                    Debug.LogError($"Failed to load language file for {lang}");
-                }
+            var jsonload = AssetDatabase.LoadAssetAtPath(assetPath, typeof(TextAsset)) as TextAsset;
+            if (jsonload != null && jsonload.text != null)
+            {
+                json = jsonload.text;
             }
             else
             {
+                // Fallback: AssetDatabase may not be ready during early domain reload.
+                // Resolve the package's actual on-disk location via PackageInfo so this
+                // works for registry-installed packages (which live under Library/PackageCache),
+                // not just embedded/local packages where the relative path happens to exist.
+                try
+                {
+                    string fullPath = ResolvePackageAssetPath(assetPath);
+                    if (!string.IsNullOrEmpty(fullPath) && System.IO.File.Exists(fullPath))
+                    {
+                        json = System.IO.File.ReadAllText(fullPath);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"Language fallback read failed for {lang}: {e.Message}");
+                }
+            }
+
+            if (string.IsNullOrEmpty(json))
+            {
                 Debug.LogError($"Failed to load language bundle for {lang}");
+                return;
+            }
+
+            try
+            {
+                var dict = JObject.Parse(json)["data"] as JObject;
+                if (dict == null)
+                {
+                    Debug.LogError($"Language file {lang} missing 'data' object");
+                    return;
+                }
+                foreach (var item in dict)
+                {
+                    _languageDictionary[item.Key.ToString()] = item.Value.ToString();
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to parse language file for {lang}: {e.Message}");
             }
         }
+        private static string ResolvePackageAssetPath(string assetPath)
+        {
+            // Prefer the resolved on-disk path from PackageInfo; works for packages
+            // installed via UPM (Library/PackageCache/...) as well as embedded ones.
+            var pkgInfo = UnityEditor.PackageManager.PackageInfo.FindForAssetPath(assetPath);
+            if (pkgInfo != null && !string.IsNullOrEmpty(pkgInfo.resolvedPath))
+            {
+                const string prefix = "Packages/";
+                if (assetPath.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    int slash = assetPath.IndexOf('/', prefix.Length);
+                    if (slash >= 0)
+                    {
+                        string remainder = assetPath.Substring(slash + 1);
+                        return System.IO.Path.Combine(pkgInfo.resolvedPath, remainder);
+                    }
+                }
+            }
+            // Last-resort fallback for embedded/local packages where the project-relative
+            // path is real on disk.
+            return System.IO.Path.GetFullPath(assetPath);
+        }
+
         public bool IsSupportedLanguage(SystemLanguage lang)
         {
             return lang == SystemLanguage.English 

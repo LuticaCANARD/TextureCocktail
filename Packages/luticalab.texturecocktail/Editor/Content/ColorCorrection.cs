@@ -12,6 +12,7 @@ namespace LuticaLab.TextureCocktail
         SplitToning
     }
     
+    [TextureCocktailShader("Hidden/ColorCorrection", DisplayName = "Color Correction", Category = "Color")]
     public class ColorCorrection : TextureCocktailContent
     {
         public override bool UseDefaultLayout { get => false; }

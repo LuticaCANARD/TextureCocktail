@@ -21,6 +21,7 @@ namespace LuticaLab.TextureCocktail
         Exclusion
     }
     
+    [TextureCocktailShader("Hidden/TextureBlender", DisplayName = "Texture Blender", Category = "Effects")]
     public class TextureBlender : TextureCocktailContent
     {
         public override bool UseDefaultLayout { get => false; }

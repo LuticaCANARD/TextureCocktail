@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace LuticaLab.TextureCocktail
 {
+    [TextureCocktailShader("Luticalab/NormalMapGenerator", DisplayName = "Normal Map Generator", Category = "Generators")]
     public class NormalMapGenerator : TextureCocktailContent
     {
         public override bool UseDefaultLayout { get => false; }
