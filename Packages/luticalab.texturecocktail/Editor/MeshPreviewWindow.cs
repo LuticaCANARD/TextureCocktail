@@ -197,6 +197,11 @@ namespace LuticaLab.TextureCocktail
             {
                 _renderer = newRenderer;
                 _materialSlot = 0;
+                if (_bakedMesh != null)
+                {
+                    DestroyImmediate(_bakedMesh);
+                    _bakedMesh = null;
+                }
                 RefreshTextureProperties();
             }
 
@@ -278,7 +283,7 @@ namespace LuticaLab.TextureCocktail
             Rect rect = GUILayoutUtility.GetRect(10, 240, GUILayout.ExpandWidth(true), GUILayout.Height(280));
             EditorGUI.DrawRect(rect, new Color(0.12f, 0.12f, 0.12f, 1f));
 
-            Mesh mesh = ResolveMesh(updateBaked: true);
+            Mesh mesh = ResolveMesh(updateBaked: Event.current.type == EventType.Repaint);
             if (mesh == null || _highlightMaterial == null)
             {
                 GUI.Label(rect, LanguageDisplayer.Instance.GetTranslatedLanguage("mesh_preview_no_mesh"), new GUIStyle(EditorStyles.centeredGreyMiniLabel) { alignment = TextAnchor.MiddleCenter });
@@ -371,8 +376,12 @@ namespace LuticaLab.TextureCocktail
             if (_renderer is SkinnedMeshRenderer smr)
             {
                 if (smr.sharedMesh == null) return null;
-                if (_bakedMesh == null) _bakedMesh = new Mesh { name = "TC_BakedSkinned" };
-                if (updateBaked)
+                if (_bakedMesh == null)
+                {
+                    _bakedMesh = new Mesh { name = "TC_BakedSkinned" };
+                    smr.BakeMesh(_bakedMesh, true);
+                }
+                else if (updateBaked)
                 {
                     smr.BakeMesh(_bakedMesh, true);
                 }
