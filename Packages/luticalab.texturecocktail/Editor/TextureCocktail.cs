@@ -252,19 +252,23 @@ namespace LuticaLab.TextureCocktail
                 GUI.Box(previewRect, "", EditorStyles.helpBox);
 
                 EditorGUILayout.BeginHorizontal();
-                bool newPolygonMaskEnabled = EditorGUILayout.ToggleLeft("Enable Polygon Mask", _polygonMaskEnabled);
+                bool newPolygonMaskEnabled = EditorGUILayout.ToggleLeft(
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_mask_enable"),
+                    _polygonMaskEnabled);
                 if (newPolygonMaskEnabled != _polygonMaskEnabled)
                 {
                     PolygonMaskEnabled = newPolygonMaskEnabled;
                 }
-                if (GUILayout.Button("Finish Polygon", GUILayout.Width(120)))
+                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_finish"),
+                    GUILayout.Width(120)))
                 {
                     if (FinalizeOpenPolygon())
                     {
                         CompileShader();
                     }
                 }
-                if (GUILayout.Button("Reset Polygons", GUILayout.Width(120)))
+                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_reset"),
+                    GUILayout.Width(120)))
                 {
                     ClearPolygonMask();
                     CompileShader();
@@ -288,7 +292,9 @@ namespace LuticaLab.TextureCocktail
                 if (_polygonMaskShapes.Count > 0)
                 {
                     GetPolygonShapeCounts(out int closedCount, out int openCount);
-                    EditorGUILayout.LabelField($"Polygons: {closedCount} closed, {openCount} open. Drag inside a polygon to move it.", EditorStyles.miniLabel);
+                    EditorGUILayout.LabelField(string.Format(
+                        LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_count_label_with_hint"),
+                        closedCount, openCount), EditorStyles.miniLabel);
                 }
             }
             else
@@ -493,6 +499,23 @@ namespace LuticaLab.TextureCocktail
                     _calcMaterial.DisableKeyword(keyword);
             }
         }
+        private int ResolveActivePassIndex()
+        {
+            // Priority: per-shader content window's PassOrder (runtime/UI-driven, e.g. FeatureExtractor),
+            // falling back to the registered package's PassIndex, then 0.
+            if (_shaderWindow != null)
+            {
+                int pass = _shaderWindow.PassOrder;
+                if (pass >= 0) return pass;
+            }
+            if (_shader != null)
+            {
+                var pkg = TextureCocktailShaderRegistry.FindByShader(_shader);
+                if (pkg != null && pkg.PassIndex >= 0) return pkg.PassIndex;
+            }
+            return 0;
+        }
+
         public void CompileShader()
         {
             if (_calcMaterial != null && _targetTexture != null)
@@ -503,7 +526,8 @@ namespace LuticaLab.TextureCocktail
                 {
                     ApplyShaderDict(keyword.Key);
                 }
-                ShaderUtil.CompilePass(_calcMaterial, 0);
+                int passIndex = ResolveActivePassIndex();
+                ShaderUtil.CompilePass(_calcMaterial, passIndex);
                 RenderTexture prevActive = RenderTexture.active;
                 if (_polygonMaskEnabled && HasAnyClosedPolygon())
                 {
@@ -514,7 +538,7 @@ namespace LuticaLab.TextureCocktail
                         RenderTexture processedTexture = RenderTexture.GetTemporary(_targetTexture.width, _targetTexture.height, 0, _previewTextureFormat);
                         try
                         {
-                            Graphics.Blit(_targetTexture, processedTexture, _calcMaterial);
+                            Graphics.Blit(_targetTexture, processedTexture, _calcMaterial, passIndex);
                             _polygonCompositeMaterial.SetTexture("_OriginalTex", _targetTexture);
                             _polygonCompositeMaterial.SetTexture("_ProcessedTex", processedTexture);
                             _polygonCompositeMaterial.SetTexture("_MaskTex", _polygonMaskTexture);
@@ -528,13 +552,13 @@ namespace LuticaLab.TextureCocktail
                     }
                     else
                     {
-                        Graphics.Blit(_targetTexture, _preview, _calcMaterial);
+                        Graphics.Blit(_targetTexture, _preview, _calcMaterial, passIndex);
                         RenderTexture.active = prevActive;
                     }
                 }
                 else
                 {
-                    Graphics.Blit(_targetTexture, _preview, _calcMaterial);
+                    Graphics.Blit(_targetTexture, _preview, _calcMaterial, passIndex);
                     RenderTexture.active = prevActive;
                 }
                 OnPreviewUpdated?.Invoke();

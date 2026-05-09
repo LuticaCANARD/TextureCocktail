@@ -64,10 +64,13 @@ namespace LuticaLab
             else
             {
                 // Fallback: AssetDatabase may not be ready during early domain reload.
+                // Resolve the package's actual on-disk location via PackageInfo so this
+                // works for registry-installed packages (which live under Library/PackageCache),
+                // not just embedded/local packages where the relative path happens to exist.
                 try
                 {
-                    string fullPath = System.IO.Path.GetFullPath(assetPath);
-                    if (System.IO.File.Exists(fullPath))
+                    string fullPath = ResolvePackageAssetPath(assetPath);
+                    if (!string.IsNullOrEmpty(fullPath) && System.IO.File.Exists(fullPath))
                     {
                         json = System.IO.File.ReadAllText(fullPath);
                     }
@@ -102,6 +105,29 @@ namespace LuticaLab
                 Debug.LogError($"Failed to parse language file for {lang}: {e.Message}");
             }
         }
+        private static string ResolvePackageAssetPath(string assetPath)
+        {
+            // Prefer the resolved on-disk path from PackageInfo; works for packages
+            // installed via UPM (Library/PackageCache/...) as well as embedded ones.
+            var pkgInfo = UnityEditor.PackageManager.PackageInfo.FindForAssetPath(assetPath);
+            if (pkgInfo != null && !string.IsNullOrEmpty(pkgInfo.resolvedPath))
+            {
+                const string prefix = "Packages/";
+                if (assetPath.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    int slash = assetPath.IndexOf('/', prefix.Length);
+                    if (slash >= 0)
+                    {
+                        string remainder = assetPath.Substring(slash + 1);
+                        return System.IO.Path.Combine(pkgInfo.resolvedPath, remainder);
+                    }
+                }
+            }
+            // Last-resort fallback for embedded/local packages where the project-relative
+            // path is real on disk.
+            return System.IO.Path.GetFullPath(assetPath);
+        }
+
         public bool IsSupportedLanguage(SystemLanguage lang)
         {
             return lang == SystemLanguage.English 

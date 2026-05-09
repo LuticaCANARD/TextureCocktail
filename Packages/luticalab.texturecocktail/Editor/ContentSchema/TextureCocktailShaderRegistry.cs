@@ -72,37 +72,57 @@ namespace LuticaLab.TextureCocktail
                     Debug.LogWarning($"[TextureCocktail] Skipping package '{path}': {reason}");
                     continue;
                 }
-                sink.Add(pkg);
+                int existingIndex = IndexOfShader(sink, pkg.Shader);
+                if (existingIndex >= 0)
+                {
+                    Debug.LogWarning($"[TextureCocktail] Duplicate shader '{pkg.Shader.name}' in package '{path}'; the later asset replaces the earlier one.");
+                    sink[existingIndex] = pkg;
+                }
+                else
+                {
+                    sink.Add(pkg);
+                }
             }
         }
 
         private static void CollectAttributeBackedPackages(List<ITextureCocktailShaderPackage> sink)
         {
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            // TypeCache is dramatically faster than scanning every loaded assembly,
+            // and Unity keeps it up-to-date across domain reloads.
+            var types = TypeCache.GetTypesWithAttribute<TextureCocktailShaderAttribute>();
+            foreach (var t in types)
             {
-                Type[] types;
-                try { types = asm.GetTypes(); }
-                catch (System.Reflection.ReflectionTypeLoadException ex) { types = ex.Types; }
-                catch (Exception) { continue; }
+                if (t == null) continue;
+                var attr = (TextureCocktailShaderAttribute)Attribute.GetCustomAttribute(
+                    t, typeof(TextureCocktailShaderAttribute));
+                if (attr == null) continue;
+                if (!typeof(TextureCocktailContent).IsAssignableFrom(t)) continue;
 
-                foreach (var t in types)
+                var shader = Shader.Find(attr.ShaderPath);
+                if (shader == null)
                 {
-                    if (t == null) continue;
-                    var attr = (TextureCocktailShaderAttribute)Attribute.GetCustomAttribute(
-                        t, typeof(TextureCocktailShaderAttribute));
-                    if (attr == null) continue;
-                    if (!typeof(TextureCocktailContent).IsAssignableFrom(t)) continue;
-
-                    var shader = Shader.Find(attr.ShaderPath);
-                    if (shader == null)
-                    {
-                        Debug.LogWarning($"[TextureCocktail] Shader '{attr.ShaderPath}' tagged on '{t.FullName}' could not be found.");
-                        continue;
-                    }
-                    if (FindShaderInList(sink, shader) != null) continue;
-                    sink.Add(new ReflectedPackage(shader, attr, t));
+                    Debug.LogWarning($"[TextureCocktail] Shader '{attr.ShaderPath}' tagged on '{t.FullName}' could not be found.");
+                    continue;
                 }
+                if (FindShaderInList(sink, shader) != null) continue;
+
+                var reflected = new ReflectedPackage(shader, attr, t);
+                if (!reflected.IsCompatible(out var reason))
+                {
+                    Debug.LogWarning($"[TextureCocktail] Skipping attribute-tagged shader on '{t.FullName}': {reason}");
+                    continue;
+                }
+                sink.Add(reflected);
             }
+        }
+
+        private static int IndexOfShader(List<ITextureCocktailShaderPackage> list, Shader shader)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].Shader == shader) return i;
+            }
+            return -1;
         }
 
         private static ITextureCocktailShaderPackage FindShaderInList(List<ITextureCocktailShaderPackage> list, Shader shader)

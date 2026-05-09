@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python -c \"import json; [json.load\\(open\\(f, encoding='utf-8'\\)\\) for f in ['d:/VRC_Project/Tools/Developing/TextureCocktail/Packages/luticalab.core/Languages/English.json','d:/VRC_Project/Tools/Developing/TextureCocktail/Packages/luticalab.core/Languages/Japanese.json','d:/VRC_Project/Tools/Developing/TextureCocktail/Packages/luticalab.core/Languages/Korean.json']]; print\\('OK'\\)\")"
-    ]
-  }
-}

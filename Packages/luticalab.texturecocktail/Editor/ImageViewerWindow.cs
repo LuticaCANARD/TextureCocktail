@@ -173,27 +173,32 @@ namespace LuticaLab.TextureCocktail
             if (sourceAlive)
             {
                 EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-                bool maskEnabled = GUILayout.Toggle(_source.PolygonMaskEnabled, "Enable Polygon Mask",
+                bool maskEnabled = GUILayout.Toggle(_source.PolygonMaskEnabled,
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_mask_enable"),
                     EditorStyles.toolbarButton, GUILayout.Width(160));
                 if (maskEnabled != _source.PolygonMaskEnabled)
                 {
                     _source.PolygonMaskEnabled = maskEnabled;
                 }
-                if (GUILayout.Button("Finish Polygon", EditorStyles.toolbarButton, GUILayout.Width(120)))
+                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_finish"),
+                    EditorStyles.toolbarButton, GUILayout.Width(120)))
                 {
                     if (_source.FinalizeOpenPolygon())
                     {
                         _source.CompileShader();
                     }
                 }
-                if (GUILayout.Button("Reset Polygons", EditorStyles.toolbarButton, GUILayout.Width(120)))
+                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_reset"),
+                    EditorStyles.toolbarButton, GUILayout.Width(120)))
                 {
                     _source.ClearPolygonMask();
                     _source.CompileShader();
                 }
                 GUILayout.FlexibleSpace();
                 _source.GetPolygonShapeCounts(out int closedCount, out int openCount);
-                GUILayout.Label($"Polygons: {closedCount} closed, {openCount} open",
+                GUILayout.Label(string.Format(
+                        LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_count_label"),
+                        closedCount, openCount),
                     EditorStyles.miniLabel, GUILayout.Width(220));
                 EditorGUILayout.EndHorizontal();
             }
