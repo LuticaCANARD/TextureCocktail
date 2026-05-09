@@ -56,7 +56,13 @@ namespace LuticaLab.TextureCocktail
         {
             get => true;
         }
-        
+
+        public Texture2D TargetTexture => _targetTexture;
+        public RenderTexture PreviewTexture => _preview;
+        public Texture2D PolygonMaskTexture => _polygonMaskTexture;
+        public bool HasActivePolygonMask => _polygonMaskEnabled && HasAnyClosedPolygon();
+        public event System.Action OnPreviewUpdated;
+
         // Quick shader selection
         private static readonly string[] _quickShaderNames = new string[]
         {
@@ -217,6 +223,10 @@ namespace LuticaLab.TextureCocktail
                 {
                     ClearPolygonMask();
                     CompileShader();
+                }
+                if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("mesh_preview_open"), GUILayout.Width(160)))
+                {
+                    MeshPreviewWindow.ShowWindowFor(this);
                 }
                 EditorGUILayout.EndHorizontal();
                 if (_polygonMaskShapes.Count > 0)
@@ -396,6 +406,23 @@ namespace LuticaLab.TextureCocktail
                 Debug.Log(reply);
             }
         }
+        public void OpenABTestWindow()
+        {
+            if (_targetTexture == null)
+            {
+                Debug.LogWarning(LanguageDisplayer.Instance.GetTranslatedLanguage("ab_no_target"));
+                return;
+            }
+            if (_preview == null)
+            {
+                EnsurePreviewTexture();
+                if (_calcMaterial != null)
+                {
+                    CompileShader();
+                }
+            }
+            TextureABTestWindow.ShowWindow(_targetTexture, _preview, _targetTexture.name);
+        }
         public void SetMaterialKeyword(string keyword, bool value)
         {
             // Update dictionary if keyword exists in it
@@ -457,6 +484,7 @@ namespace LuticaLab.TextureCocktail
                     Graphics.Blit(_targetTexture, _preview, _calcMaterial);
                     RenderTexture.active = null;
                 }
+                OnPreviewUpdated?.Invoke();
             }
             else
             {
@@ -479,8 +507,15 @@ namespace LuticaLab.TextureCocktail
                         _shaderOptionOnOff = EditorGUILayout.BeginFoldoutHeaderGroup(_shaderOptionOnOff, LanguageDisplayer.Instance.GetTranslatedLanguage("shader_compile_options"));
                         if (_shaderOptionOnOff) DisplayShaderOptions();
                         EditorGUILayout.EndFoldoutHeaderGroup();
+                        EditorGUILayout.BeginHorizontal();
                         if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture")))
                             SaveTexture();
+                        using (new EditorGUI.DisabledScope(_preview == null || _targetTexture == null))
+                        {
+                            if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("ab_open_button"), GUILayout.Width(140)))
+                                OpenABTestWindow();
+                        }
+                        EditorGUILayout.EndHorizontal();
                     }
                     else
                     {
