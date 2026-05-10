@@ -309,7 +309,7 @@ namespace LuticaLab.TextureCocktail
             int size = RingTextureSize;
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
             tex.hideFlags = HideFlags.HideAndDontSave;
-            tex.filterMode = FilterMode.Bilinear;
+            tex.filterMode = UnityEngine.FilterMode.Bilinear;
             tex.wrapMode = TextureWrapMode.Clamp;
             float center = (size - 1) * 0.5f;
             float outerR = size * 0.5f;
@@ -351,7 +351,7 @@ namespace LuticaLab.TextureCocktail
             {
                 _triangleTex = new Texture2D(size, size, TextureFormat.RGBA32, false);
                 _triangleTex.hideFlags = HideFlags.HideAndDontSave;
-                _triangleTex.filterMode = FilterMode.Bilinear;
+                _triangleTex.filterMode = UnityEngine.FilterMode.Bilinear;
                 _triangleTex.wrapMode = TextureWrapMode.Clamp;
             }
 
