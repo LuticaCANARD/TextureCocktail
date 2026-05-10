@@ -55,7 +55,7 @@ namespace LuticaLab.TextureCocktail
             float triR = innerR * TriangleInsetRatio;
 
             Vector2 vTop, vLeft, vRight;
-            GetTriangleVertices(center, triR, out vTop, out vLeft, out vRight);
+            GetTriangleVertices(center, triR, h, out vTop, out vLeft, out vRight);
 
             int controlID = GUIUtility.GetControlID(FocusType.Passive);
             Event e = Event.current;
@@ -68,7 +68,13 @@ namespace LuticaLab.TextureCocktail
 
                     float triBoxSize = triR * 2f;
                     Rect triBoxRect = new Rect(center.x - triR, center.y - triR, triBoxSize, triBoxSize);
+                    // Rotate the triangle texture so its pure-hue vertex aligns with
+                    // the hue indicator on the ring. The texture content already encodes
+                    // the gradient with the pure hue at "natural top" (high tex y).
+                    Matrix4x4 prevMatrix = GUI.matrix;
+                    GUIUtility.RotateAroundPivot(h * 360f, center);
                     GUI.DrawTexture(triBoxRect, _triangleTex);
+                    GUI.matrix = prevMatrix;
 
                     DrawHueIndicator(center, h, innerR, outerR);
                     DrawTriangleIndicator(color, h, vTop, vLeft, vRight);
@@ -170,12 +176,19 @@ namespace LuticaLab.TextureCocktail
             return color;
         }
 
-        private static void GetTriangleVertices(Vector2 center, float radius, out Vector2 top, out Vector2 left, out Vector2 right)
+        private static void GetTriangleVertices(Vector2 center, float radius, float hue,
+            out Vector2 top, out Vector2 left, out Vector2 right)
         {
-            top = center + new Vector2(0f, -radius);
-            float ang = Mathf.PI * 2f / 3f;
-            left = center + new Vector2(Mathf.Sin(-ang) * radius, -Mathf.Cos(-ang) * radius);
-            right = center + new Vector2(Mathf.Sin(ang) * radius, -Mathf.Cos(ang) * radius);
+            float baseAngle = hue * Mathf.PI * 2f;
+            float step = Mathf.PI * 2f / 3f;
+            top = VertexAt(center, radius, baseAngle);
+            left = VertexAt(center, radius, baseAngle - step);
+            right = VertexAt(center, radius, baseAngle + step);
+        }
+
+        private static Vector2 VertexAt(Vector2 center, float radius, float angle)
+        {
+            return center + new Vector2(Mathf.Sin(angle) * radius, -Mathf.Cos(angle) * radius);
         }
 
         private static void DrawHueIndicator(Vector2 center, float hue, float innerR, float outerR)
