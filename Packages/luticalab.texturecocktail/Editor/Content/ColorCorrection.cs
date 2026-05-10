@@ -196,6 +196,7 @@ namespace LuticaLab.TextureCocktail
         {
             if (!material.HasProperty(propertyName)) return;
             EditorGUILayout.BeginHorizontal();
+            bool prevEnabled = GUI.enabled;
             try
             {
                 Color current = material.GetColor(propertyName);
@@ -205,7 +206,7 @@ namespace LuticaLab.TextureCocktail
                     material.SetColor(propertyName, updated);
                 }
                 bool isActive = _activeColorProperty == propertyName;
-                GUI.enabled = !isActive || !_showHSLPicker;
+                GUI.enabled = prevEnabled && (!isActive || !_showHSLPicker);
                 if (GUILayout.Button(
                     LanguageDisplayer.Instance.GetTranslatedLanguage("hsl_pick"),
                     GUILayout.Width(70)))
@@ -214,10 +215,10 @@ namespace LuticaLab.TextureCocktail
                     _activeColorLabel = label;
                     _showHSLPicker = true;
                 }
-                GUI.enabled = true;
             }
             finally
             {
+                GUI.enabled = prevEnabled;
                 EditorGUILayout.EndHorizontal();
             }
         }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -30,6 +31,13 @@ namespace LuticaLab.TextureCocktail
         // all editor windows.
         private static DragMode _dragMode = DragMode.None;
 
+        // Per-control hue memory. RGB→HSL is lossy when a color is achromatic
+        // (S=0 → H=0), so without this cache the hue indicator would snap to
+        // red and ring drags would silently produce identical gray colors.
+        // Storing the last interacted hue per controlID lets the user spin the
+        // ring to a meaningful position even before raising saturation.
+        private static readonly Dictionary<int, float> _hueByControl = new Dictionary<int, float>();
+
         [InitializeOnLoadMethod]
         private static void RegisterDomainReloadCleanup()
         {
@@ -52,6 +60,7 @@ namespace LuticaLab.TextureCocktail
             _triangleBarycentricCache = null;
             _cachedBarycentricSize = 0;
             _cachedTriangleHue = -1f;
+            _hueByControl.Clear();
         }
 
         public static Color HSLColorField(string label, Color color, float size = 220f)
@@ -68,11 +77,30 @@ namespace LuticaLab.TextureCocktail
 
         public static Color Draw(Rect rect, Color color)
         {
+            float originalAlpha = color.a;
             float h, s, l;
             RGBToHSL(color, out h, out s, out l);
 
+            int controlID = GUIUtility.GetControlID(FocusType.Passive);
+
+            // Resolve the hue used for visualization and triangle interaction.
+            // For chromatic colors we trust the RGB-derived hue and refresh the
+            // cache; for achromatic colors we fall back to the cached hue so the
+            // ring marker and triangle orientation remain stable.
+            float effectiveHue;
+            if (s > 0.001f)
+            {
+                effectiveHue = h;
+                _hueByControl[controlID] = effectiveHue;
+            }
+            else if (!_hueByControl.TryGetValue(controlID, out effectiveHue))
+            {
+                effectiveHue = h;
+                _hueByControl[controlID] = effectiveHue;
+            }
+
             EnsureRingTexture();
-            EnsureTriangleTexture(h);
+            EnsureTriangleTexture(effectiveHue);
 
             float size = Mathf.Min(rect.width, rect.height);
             Rect ringRect = new Rect(
@@ -85,9 +113,8 @@ namespace LuticaLab.TextureCocktail
             float triR = innerR * TriangleInsetRatio;
 
             Vector2 vTop, vLeft, vRight;
-            GetTriangleVertices(center, triR, h, out vTop, out vLeft, out vRight);
+            GetTriangleVertices(center, triR, effectiveHue, out vTop, out vLeft, out vRight);
 
-            int controlID = GUIUtility.GetControlID(FocusType.Passive);
             Event e = Event.current;
 
             switch (e.GetTypeForControl(controlID))
@@ -102,12 +129,12 @@ namespace LuticaLab.TextureCocktail
                     // the hue indicator on the ring. The texture content already encodes
                     // the gradient with the pure hue at "natural top" (high tex y).
                     Matrix4x4 prevMatrix = GUI.matrix;
-                    GUIUtility.RotateAroundPivot(h * 360f, center);
+                    GUIUtility.RotateAroundPivot(effectiveHue * 360f, center);
                     GUI.DrawTexture(triBoxRect, _triangleTex);
                     GUI.matrix = prevMatrix;
 
-                    DrawHueIndicator(center, h, innerR, outerR);
-                    DrawTriangleIndicator(color, h, vTop, vLeft, vRight);
+                    DrawHueIndicator(center, effectiveHue, innerR, outerR);
+                    DrawTriangleIndicator(color, vTop, vLeft, vRight);
                     break;
                 }
 
@@ -121,8 +148,9 @@ namespace LuticaLab.TextureCocktail
                         {
                             GUIUtility.hotControl = controlID;
                             _dragMode = DragMode.Ring;
-                            h = AngleToHue(local);
-                            color = HSLToRGB(h, s, l);
+                            float newHue = AngleToHue(local);
+                            _hueByControl[controlID] = newHue;
+                            color = HSLToRGB(newHue, s, l, originalAlpha);
                             GUI.changed = true;
                             e.Use();
                         }
@@ -130,7 +158,7 @@ namespace LuticaLab.TextureCocktail
                         {
                             GUIUtility.hotControl = controlID;
                             _dragMode = DragMode.Triangle;
-                            color = ColorFromTrianglePoint(e.mousePosition, vTop, vLeft, vRight, h);
+                            color = ColorFromTrianglePoint(e.mousePosition, vTop, vLeft, vRight, effectiveHue, originalAlpha);
                             GUI.changed = true;
                             e.Use();
                         }
@@ -145,15 +173,16 @@ namespace LuticaLab.TextureCocktail
                         if (_dragMode == DragMode.Ring)
                         {
                             Vector2 local = e.mousePosition - center;
-                            h = AngleToHue(local);
-                            color = HSLToRGB(h, s, l);
+                            float newHue = AngleToHue(local);
+                            _hueByControl[controlID] = newHue;
+                            color = HSLToRGB(newHue, s, l, originalAlpha);
                             GUI.changed = true;
                             e.Use();
                         }
                         else if (_dragMode == DragMode.Triangle)
                         {
                             Vector2 clamped = ClampPointToTriangle(e.mousePosition, vTop, vLeft, vRight);
-                            color = ColorFromTrianglePoint(clamped, vTop, vLeft, vRight, h);
+                            color = ColorFromTrianglePoint(clamped, vTop, vLeft, vRight, effectiveHue, originalAlpha);
                             GUI.changed = true;
                             e.Use();
                         }
@@ -187,6 +216,8 @@ namespace LuticaLab.TextureCocktail
             Color rgbField = EditorGUILayout.ColorField("RGB", color);
             if (EditorGUI.EndChangeCheck())
             {
+                // The ColorField is the only path that lets the user edit alpha,
+                // so prefer its result when any channel (including A) differs.
                 if (!Mathf.Approximately(rgbField.r, color.r) ||
                     !Mathf.Approximately(rgbField.g, color.g) ||
                     !Mathf.Approximately(rgbField.b, color.b) ||
@@ -194,7 +225,7 @@ namespace LuticaLab.TextureCocktail
                 {
                     return rgbField;
                 }
-                return HSLToRGB(Mathf.Repeat(newH, 1f), Mathf.Clamp01(newS), Mathf.Clamp01(newL));
+                return HSLToRGB(Mathf.Repeat(newH, 1f), Mathf.Clamp01(newS), Mathf.Clamp01(newL), color.a);
             }
             return color;
         }
@@ -224,10 +255,10 @@ namespace LuticaLab.TextureCocktail
             DrawMarker(pos, marker);
         }
 
-        private static void DrawTriangleIndicator(Color color, float hue, Vector2 vTop, Vector2 vLeft, Vector2 vRight)
+        private static void DrawTriangleIndicator(Color color, Vector2 vTop, Vector2 vLeft, Vector2 vRight)
         {
             float a, b, c;
-            BarycentricFromColor(color, hue, out a, out b, out c);
+            BarycentricFromColor(color, out a, out b, out c);
             Vector2 pos = a * vTop + b * vLeft + c * vRight;
             DrawMarker(pos, 9f);
         }
@@ -255,7 +286,7 @@ namespace LuticaLab.TextureCocktail
             return Mathf.Repeat(hue, 1f);
         }
 
-        private static Color ColorFromTrianglePoint(Vector2 p, Vector2 vTop, Vector2 vLeft, Vector2 vRight, float hue)
+        private static Color ColorFromTrianglePoint(Vector2 p, Vector2 vTop, Vector2 vLeft, Vector2 vRight, float hue, float alpha)
         {
             float a, b, c;
             Barycentric(p, vTop, vLeft, vRight, out a, out b, out c);
@@ -269,10 +300,10 @@ namespace LuticaLab.TextureCocktail
                 a * pure.r + c,
                 a * pure.g + c,
                 a * pure.b + c,
-                1f);
+                alpha);
         }
 
-        private static void BarycentricFromColor(Color color, float hue, out float a, out float b, out float c)
+        private static void BarycentricFromColor(Color color, out float a, out float b, out float c)
         {
             float cmax = Mathf.Max(color.r, Mathf.Max(color.g, color.b));
             float cmin = Mathf.Min(color.r, Mathf.Min(color.g, color.b));
@@ -473,21 +504,23 @@ namespace LuticaLab.TextureCocktail
             h /= 6f;
         }
 
-        public static Color HSLToRGB(float h, float s, float l)
+        public static Color HSLToRGB(float h, float s, float l) => HSLToRGB(h, s, l, 1f);
+
+        public static Color HSLToRGB(float h, float s, float l, float a)
         {
             h = Mathf.Repeat(h, 1f);
             s = Mathf.Clamp01(s);
             l = Mathf.Clamp01(l);
             if (s < 1e-6f)
             {
-                return new Color(l, l, l, 1f);
+                return new Color(l, l, l, a);
             }
             float q = l < 0.5f ? l * (1f + s) : l + s - l * s;
             float p = 2f * l - q;
             float r = HueToChannel(p, q, h + 1f / 3f);
             float g = HueToChannel(p, q, h);
             float b = HueToChannel(p, q, h - 1f / 3f);
-            return new Color(r, g, b, 1f);
+            return new Color(r, g, b, a);
         }
 
         private static float HueToChannel(float p, float q, float t)
