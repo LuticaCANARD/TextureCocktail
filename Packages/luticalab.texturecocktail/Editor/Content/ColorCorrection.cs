@@ -20,7 +20,6 @@ namespace LuticaLab.TextureCocktail
         
         private ColorGradingMode gradingMode = ColorGradingMode.Basic;
         private bool _showBasicSettings = true;
-        private bool _showAdvancedSettings = false;
         private bool _showPreview = true;
         private bool _showHSLPicker = true;
         private string _activeColorProperty;

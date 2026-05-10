@@ -23,8 +23,6 @@ namespace LuticaLab.TextureCocktail
         
         private FilterMode filterMode = FilterMode.None;
         private bool _showBasicAdjustments = true;
-        private bool _showFilters = false;
-        private bool _showAdvanced = false;
         private bool _showPreview = true;
         
         private static readonly string[] _filterKeywords = new string[] 
