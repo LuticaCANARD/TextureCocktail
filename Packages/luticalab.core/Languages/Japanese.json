@@ -158,7 +158,16 @@
         "hue_offset": "色相オフセット",
         "saturation_offset": "彩度オフセット",
         "value_offset": "明度(輝度)オフセット",
-        
+
+        "hsl_pick": "HSL選択",
+        "hsl_picker_for": "{0} のHSLピッカー",
+        "close_picker": "閉じる",
+        "hsl_target_color": "HSLターゲット色",
+        "hsl_target_color_help": "色相リングと彩度/明度トライアングルでターゲット色を選択してください。下のボタンでHSV Convert または Offset に適用できます。",
+        "apply_tint_to_offset": "オフセットとして適用",
+        "apply_tint_to_convert": "変換として適用",
+
+
         "quick_shader_select": "クイックシェーダー選択",
         "select_shader": "シェーダーを選択",
         "oilpaint_warning": "⚠️ オイルペイント効果は計算負荷が高いです。まずパラメータを調整してから、適用ボタンをクリックしてレンダリングしてください。パフォーマンスの問題を防ぐため、リアルタイムプレビューは無効になっています。",

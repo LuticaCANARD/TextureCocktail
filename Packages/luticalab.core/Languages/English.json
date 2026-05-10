@@ -155,7 +155,16 @@
             "hue_offset": "Hue Offset",
             "saturation_offset": "Saturation Offset",
             "value_offset": "Value (Brightness) Offset",
-            
+
+            "hsl_pick": "HSL Pick",
+            "hsl_picker_for": "HSL Picker for {0}",
+            "close_picker": "Close",
+            "hsl_target_color": "HSL Target Color",
+            "hsl_target_color_help": "Pick a target color with the hue ring and saturation/lightness triangle. Click the buttons below to apply it as an HSV convert or offset.",
+            "apply_tint_to_offset": "Apply as Offset",
+            "apply_tint_to_convert": "Apply as Convert",
+
+
             "quick_shader_select": "Quick Shader Selection",
             "select_shader": "Select Shader",
             "oilpaint_warning": "⚠️ Oil Paint effect is computationally expensive. Adjust parameters first, then click Apply to render. Real-time preview is disabled to prevent performance issues.",
