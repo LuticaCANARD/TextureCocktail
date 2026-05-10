@@ -19,10 +19,40 @@ namespace LuticaLab.TextureCocktail
         private static Texture2D _hueRingTex;
         private static Texture2D _triangleTex;
         private static float _cachedTriangleHue = -1f;
+        // Per-pixel barycentric weights for the triangle texture, packed as
+        // (a, b, c) triples. Computed once and reused across hue changes.
+        private static Vector3[] _triangleBarycentricCache;
+        private static int _cachedBarycentricSize;
 
         private enum DragMode { None, Ring, Triangle }
-        private static int _activeControlID = -1;
+        // Drag state is global because Unity's GUIUtility.hotControl is global —
+        // only one HSL picker can be the active drag target at a time across
+        // all editor windows.
         private static DragMode _dragMode = DragMode.None;
+
+        [InitializeOnLoadMethod]
+        private static void RegisterDomainReloadCleanup()
+        {
+            AssemblyReloadEvents.beforeAssemblyReload -= ReleaseCachedTextures;
+            AssemblyReloadEvents.beforeAssemblyReload += ReleaseCachedTextures;
+        }
+
+        private static void ReleaseCachedTextures()
+        {
+            if (_hueRingTex != null)
+            {
+                UnityEngine.Object.DestroyImmediate(_hueRingTex);
+                _hueRingTex = null;
+            }
+            if (_triangleTex != null)
+            {
+                UnityEngine.Object.DestroyImmediate(_triangleTex);
+                _triangleTex = null;
+            }
+            _triangleBarycentricCache = null;
+            _cachedBarycentricSize = 0;
+            _cachedTriangleHue = -1f;
+        }
 
         public static Color HSLColorField(string label, Color color, float size = 220f)
         {
@@ -90,12 +120,8 @@ namespace LuticaLab.TextureCocktail
                         if (dist <= outerR && dist >= innerR)
                         {
                             GUIUtility.hotControl = controlID;
-                            _activeControlID = controlID;
                             _dragMode = DragMode.Ring;
                             h = AngleToHue(local);
-                            // If the current color is desaturated, the hue change would be
-                            // invisible. Promote to a visible saturated mid-lightness color.
-                            if (s < 0.05f) { s = 1f; l = 0.5f; }
                             color = HSLToRGB(h, s, l);
                             GUI.changed = true;
                             e.Use();
@@ -103,7 +129,6 @@ namespace LuticaLab.TextureCocktail
                         else if (PointInTriangle(e.mousePosition, vTop, vLeft, vRight))
                         {
                             GUIUtility.hotControl = controlID;
-                            _activeControlID = controlID;
                             _dragMode = DragMode.Triangle;
                             color = ColorFromTrianglePoint(e.mousePosition, vTop, vLeft, vRight, h);
                             GUI.changed = true;
@@ -115,13 +140,12 @@ namespace LuticaLab.TextureCocktail
 
                 case EventType.MouseDrag:
                 {
-                    if (GUIUtility.hotControl == controlID && _activeControlID == controlID)
+                    if (GUIUtility.hotControl == controlID)
                     {
                         if (_dragMode == DragMode.Ring)
                         {
                             Vector2 local = e.mousePosition - center;
                             h = AngleToHue(local);
-                            if (s < 0.05f) { s = 1f; l = 0.5f; }
                             color = HSLToRGB(h, s, l);
                             GUI.changed = true;
                             e.Use();
@@ -139,10 +163,9 @@ namespace LuticaLab.TextureCocktail
 
                 case EventType.MouseUp:
                 {
-                    if (GUIUtility.hotControl == controlID && _activeControlID == controlID)
+                    if (GUIUtility.hotControl == controlID)
                     {
                         GUIUtility.hotControl = 0;
-                        _activeControlID = -1;
                         _dragMode = DragMode.None;
                         e.Use();
                     }
@@ -368,9 +391,36 @@ namespace LuticaLab.TextureCocktail
                 _triangleTex.wrapMode = TextureWrapMode.Clamp;
             }
 
+            EnsureTriangleBarycentricCache(size);
+
+            // Per-hue work is just a linear blend over the precomputed weights:
+            //   color = a * pureHue + c * white   (b weight contributes black)
+            Color pure = HSLToRGB(hue, 1f, 0.5f);
+            int total = size * size;
+            var pixels = new Color32[total];
+            for (int i = 0; i < total; i++)
+            {
+                Vector3 w = _triangleBarycentricCache[i];
+                if (w.x < 0f)
+                {
+                    pixels[i] = new Color32(0, 0, 0, 0);
+                    continue;
+                }
+                float a = w.x;
+                float c = w.z;
+                pixels[i] = new Color(a * pure.r + c, a * pure.g + c, a * pure.b + c, 1f);
+            }
+            _triangleTex.SetPixels32(pixels);
+            _triangleTex.Apply(false);
+            _cachedTriangleHue = hue;
+        }
+
+        private static void EnsureTriangleBarycentricCache(int size)
+        {
+            if (_triangleBarycentricCache != null && _cachedBarycentricSize == size) return;
+
             // Triangle is computed in texture coordinates (y up). Pure hue vertex is
             // at high y so it renders at the top of the rect on screen.
-            Color pure = HSLToRGB(hue, 1f, 0.5f);
             float R = size * 0.5f - 0.5f;
             float cx = size * 0.5f;
             float cy = size * 0.5f;
@@ -379,7 +429,7 @@ namespace LuticaLab.TextureCocktail
             Vector2 vLeft = new Vector2(cx + Mathf.Sin(-ang) * R, cy + Mathf.Cos(-ang) * R);
             Vector2 vRight = new Vector2(cx + Mathf.Sin(ang) * R, cy + Mathf.Cos(ang) * R);
 
-            var pixels = new Color32[size * size];
+            var cache = new Vector3[size * size];
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
@@ -389,21 +439,18 @@ namespace LuticaLab.TextureCocktail
                     Barycentric(p, vTop, vLeft, vRight, out a, out b, out c);
                     if (a < -0.005f || b < -0.005f || c < -0.005f)
                     {
-                        pixels[y * size + x] = new Color32(0, 0, 0, 0);
+                        // Sentinel: x < 0 marks "outside the triangle".
+                        cache[y * size + x] = new Vector3(-1f, 0f, 0f);
                         continue;
                     }
-                    a = Mathf.Clamp01(a);
-                    b = Mathf.Clamp01(b);
-                    c = Mathf.Clamp01(c);
-                    float r = a * pure.r + c;
-                    float g = a * pure.g + c;
-                    float bl = a * pure.b + c;
-                    pixels[y * size + x] = new Color(r, g, bl, 1f);
+                    cache[y * size + x] = new Vector3(
+                        Mathf.Clamp01(a),
+                        Mathf.Clamp01(b),
+                        Mathf.Clamp01(c));
                 }
             }
-            _triangleTex.SetPixels32(pixels);
-            _triangleTex.Apply(false);
-            _cachedTriangleHue = hue;
+            _triangleBarycentricCache = cache;
+            _cachedBarycentricSize = size;
         }
 
         public static void RGBToHSL(Color color, out float h, out float s, out float l)

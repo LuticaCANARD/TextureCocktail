@@ -188,26 +188,24 @@ namespace LuticaLab.TextureCocktail
         
         private void ApplyTintToHsvOffset()
         {
+            ApplyTintToVector("_hsvOffsetVector");
+        }
+
+        private void ApplyTintToHsvConvert()
+        {
+            ApplyTintToVector("_hsvConvertVector");
+        }
+
+        private void ApplyTintToVector(string propertyName)
+        {
             var material = GetMaterial();
-            if (material == null || !material.HasProperty("_hsvOffsetVector")) return;
+            if (material == null || !material.HasProperty(propertyName)) return;
 
             float h, s, v;
             Color.RGBToHSV(_tintColor, out h, out s, out v);
             // Treat hue 0 as the neutral identity, so offset is signed in [-0.5, 0.5].
             float hueOffset = h > 0.5f ? h - 1f : h;
-            material.SetVector("_hsvOffsetVector", new Vector4(hueOffset, s - 0.5f, v - 0.5f, 0f));
-            baseWindow.CompileShader();
-        }
-
-        private void ApplyTintToHsvConvert()
-        {
-            var material = GetMaterial();
-            if (material == null || !material.HasProperty("_hsvConvertVector")) return;
-
-            float h, s, v;
-            Color.RGBToHSV(_tintColor, out h, out s, out v);
-            float hueOffset = h > 0.5f ? h - 1f : h;
-            material.SetVector("_hsvConvertVector", new Vector4(hueOffset, s - 0.5f, v - 0.5f, 0f));
+            material.SetVector(propertyName, new Vector4(hueOffset, s - 0.5f, v - 0.5f, 0f));
             baseWindow.CompileShader();
         }
 
