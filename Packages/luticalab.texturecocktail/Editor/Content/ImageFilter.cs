@@ -14,6 +14,8 @@ namespace LuticaLab.TextureCocktail
         private bool _showHSVConvert = true;
         private bool _showHSVOffset = true;
         private bool _showPreview = true;
+        private bool _showHSLPicker = true;
+        private Color _tintColor = Color.red;
         
         // Quick presets for common HSV adjustments
         private readonly Dictionary<string, System.Action> _presets = new Dictionary<string, System.Action>();
@@ -122,9 +124,41 @@ namespace LuticaLab.TextureCocktail
                     }
                 }
                 EditorGUILayout.EndFoldoutHeaderGroup();
-                
+
                 GUILayout.Space(10);
-                
+
+                // HSL Color Picker section
+                _showHSLPicker = EditorGUILayout.BeginFoldoutHeaderGroup(_showHSLPicker,
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("hsl_target_color"));
+                if (_showHSLPicker)
+                {
+                    EditorGUILayout.HelpBox(
+                        LanguageDisplayer.Instance.GetTranslatedLanguage("hsl_target_color_help"),
+                        MessageType.None);
+
+                    EditorGUI.BeginChangeCheck();
+                    Color newTint = HSLColorPicker.HSLColorField(null, _tintColor);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        _tintColor = newTint;
+                        baseWindow.Repaint();
+                    }
+
+                    EditorGUILayout.BeginHorizontal();
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_tint_to_offset"), GUILayout.Height(28)))
+                    {
+                        ApplyTintToHsvOffset();
+                    }
+                    if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_tint_to_convert"), GUILayout.Height(28)))
+                    {
+                        ApplyTintToHsvConvert();
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
+
+                GUILayout.Space(10);
+
                 // Preview
                 _showPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_showPreview, 
                     LanguageDisplayer.Instance.GetTranslatedLanguage("preview"));
@@ -152,6 +186,29 @@ namespace LuticaLab.TextureCocktail
             }
         }
         
+        private void ApplyTintToHsvOffset()
+        {
+            ApplyTintToVector("_hsvOffsetVector");
+        }
+
+        private void ApplyTintToHsvConvert()
+        {
+            ApplyTintToVector("_hsvConvertVector");
+        }
+
+        private void ApplyTintToVector(string propertyName)
+        {
+            var material = GetMaterial();
+            if (material == null || !material.HasProperty(propertyName)) return;
+
+            float h, s, v;
+            Color.RGBToHSV(_tintColor, out h, out s, out v);
+            // Treat hue 0 as the neutral identity, so offset is signed in [-0.5, 0.5].
+            float hueOffset = h > 0.5f ? h - 1f : h;
+            material.SetVector(propertyName, new Vector4(hueOffset, s - 0.5f, v - 0.5f, 0f));
+            baseWindow.CompileShader();
+        }
+
         private void ApplyPreset(Vector3 convert, Vector3 offset)
         {
             var material = GetMaterial();

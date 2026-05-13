@@ -26,7 +26,6 @@ namespace LuticaLab.TextureCocktail
         private MethodInfo _getShaderKeywordsMethod;
         private bool _shaderOptionOnOff = false;
         private TextureCocktailContent _shaderWindow;
-        private bool _shaderChanged = false;
         private readonly Dictionary<string,bool> _keywordOnOff = new Dictionary<string, bool>();
         const string _mainTexProperty = "_MainTex";
 

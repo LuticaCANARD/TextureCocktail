@@ -20,8 +20,10 @@ namespace LuticaLab.TextureCocktail
         
         private ColorGradingMode gradingMode = ColorGradingMode.Basic;
         private bool _showBasicSettings = true;
-        private bool _showAdvancedSettings = false;
         private bool _showPreview = true;
+        private bool _showHSLPicker = true;
+        private string _activeColorProperty;
+        private string _activeColorLabel;
         
         private static readonly string[] _modeKeywords = new string[] 
         { 
@@ -164,45 +166,15 @@ namespace LuticaLab.TextureCocktail
                     break;
                     
                 case ColorGradingMode.ColorGrading:
-                    // Show Lift/Gamma/Gain controls
-                    if (material.HasProperty("_Lift"))
-                    {
-                        Color lift = material.GetColor("_Lift");
-                        lift = EditorGUILayout.ColorField("Lift", lift);
-                        material.SetColor("_Lift", lift);
-                    }
-                    
-                    if (material.HasProperty("_Gamma"))
-                    {
-                        Color gamma = material.GetColor("_Gamma");
-                        gamma = EditorGUILayout.ColorField("Gamma", gamma);
-                        material.SetColor("_Gamma", gamma);
-                    }
-                    
-                    if (material.HasProperty("_Gain"))
-                    {
-                        Color gain = material.GetColor("_Gain");
-                        gain = EditorGUILayout.ColorField("Gain", gain);
-                        material.SetColor("_Gain", gain);
-                    }
+                    DrawHSLColorRow(material, "_Lift", "Lift");
+                    DrawHSLColorRow(material, "_Gamma", "Gamma");
+                    DrawHSLColorRow(material, "_Gain", "Gain");
                     break;
-                    
+
                 case ColorGradingMode.SplitToning:
-                    // Show split toning controls
-                    if (material.HasProperty("_ShadowColor"))
-                    {
-                        Color shadowColor = material.GetColor("_ShadowColor");
-                        shadowColor = EditorGUILayout.ColorField("Shadow Color", shadowColor);
-                        material.SetColor("_ShadowColor", shadowColor);
-                    }
-                    
-                    if (material.HasProperty("_HighlightColor"))
-                    {
-                        Color highlightColor = material.GetColor("_HighlightColor");
-                        highlightColor = EditorGUILayout.ColorField("Highlight Color", highlightColor);
-                        material.SetColor("_HighlightColor", highlightColor);
-                    }
-                    
+                    DrawHSLColorRow(material, "_ShadowsTone", "Shadow Color");
+                    DrawHSLColorRow(material, "_HighlightsTone", "Highlight Color");
+
                     if (material.HasProperty("_Balance"))
                     {
                         float balance = material.GetFloat("_Balance");
@@ -211,10 +183,73 @@ namespace LuticaLab.TextureCocktail
                     }
                     break;
             }
-            
+
             if (EditorGUI.EndChangeCheck())
             {
                 baseWindow.OnShaderValueChange();
+            }
+
+            DrawActiveHSLPicker(material);
+        }
+
+        private void DrawHSLColorRow(Material material, string propertyName, string label)
+        {
+            if (!material.HasProperty(propertyName)) return;
+            EditorGUILayout.BeginHorizontal();
+            bool prevEnabled = GUI.enabled;
+            try
+            {
+                Color current = material.GetColor(propertyName);
+                Color updated = EditorGUILayout.ColorField(label, current);
+                if (updated != current)
+                {
+                    material.SetColor(propertyName, updated);
+                }
+                bool isActive = _activeColorProperty == propertyName;
+                GUI.enabled = prevEnabled && (!isActive || !_showHSLPicker);
+                if (GUILayout.Button(
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("hsl_pick"),
+                    GUILayout.Width(70)))
+                {
+                    _activeColorProperty = propertyName;
+                    _activeColorLabel = label;
+                    _showHSLPicker = true;
+                }
+            }
+            finally
+            {
+                GUI.enabled = prevEnabled;
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+
+        private void DrawActiveHSLPicker(Material material)
+        {
+            if (string.IsNullOrEmpty(_activeColorProperty)) return;
+            if (!material.HasProperty(_activeColorProperty)) return;
+
+            EditorGUILayout.Space(8);
+            EditorGUILayout.BeginHorizontal();
+            _showHSLPicker = EditorGUILayout.Foldout(_showHSLPicker,
+                string.Format(LanguageDisplayer.Instance.GetTranslatedLanguage("hsl_picker_for"), _activeColorLabel),
+                true);
+            if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("close_picker"), GUILayout.Width(60)))
+            {
+                _activeColorProperty = null;
+                _activeColorLabel = null;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            if (!_showHSLPicker || string.IsNullOrEmpty(_activeColorProperty)) return;
+
+            EditorGUI.BeginChangeCheck();
+            Color current = material.GetColor(_activeColorProperty);
+            Color updated = HSLColorPicker.HSLColorField(null, current);
+            if (EditorGUI.EndChangeCheck())
+            {
+                material.SetColor(_activeColorProperty, updated);
+                baseWindow.OnShaderValueChange();
+                if (baseWindow != null) baseWindow.Repaint();
             }
         }
         

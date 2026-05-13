@@ -130,6 +130,10 @@
         "view": "表示",
         "click_to_view_fullsize": "クリックしてフルサイズで表示",
         "open_fullscreen_edit": "フルスクリーン編集",
+        "polygon_mask_enable": "ポリゴンマスク有効",
+        "polygon_finish": "ポリゴン完成",
+        "polygon_reset": "ポリゴンリセット",
+        "polygon_count_label": "ポリゴン: {0}個閉じ, {1}個開き",
         "no_preview_available": "プレビューは利用できません",
         "no_image_to_display": "表示する画像がありません",
         "fit_to_window": "ウィンドウに合わせる",
@@ -158,7 +162,16 @@
         "hue_offset": "色相オフセット",
         "saturation_offset": "彩度オフセット",
         "value_offset": "明度(輝度)オフセット",
-        
+
+        "hsl_pick": "HSL選択",
+        "hsl_picker_for": "{0} のHSLピッカー",
+        "close_picker": "閉じる",
+        "hsl_target_color": "HSLターゲット色",
+        "hsl_target_color_help": "色相リングと彩度/明度トライアングルでターゲット色を選択してください。下のボタンでHSV Convert または Offset に適用できます。",
+        "apply_tint_to_offset": "オフセットとして適用",
+        "apply_tint_to_convert": "変換として適用",
+
+
         "quick_shader_select": "クイックシェーダー選択",
         "select_shader": "シェーダーを選択",
         "oilpaint_warning": "⚠️ オイルペイント効果は計算負荷が高いです。まずパラメータを調整してから、適用ボタンをクリックしてレンダリングしてください。パフォーマンスの問題を防ぐため、リアルタイムプレビューは無効になっています。",

@@ -126,6 +126,10 @@
         "view": "보기",
         "click_to_view_fullsize": "클릭하여 전체 크기로 보기",
         "open_fullscreen_edit": "전체화면 편집",
+        "polygon_mask_enable": "폴리곤 마스크 활성화",
+        "polygon_finish": "폴리곤 완성",
+        "polygon_reset": "폴리곤 초기화",
+        "polygon_count_label": "폴리곤: {0}개 닫힘, {1}개 열림",
         "no_preview_available": "미리보기를 사용할 수 없습니다",
         "no_image_to_display": "표시할 이미지가 없습니다",
         "fit_to_window": "창에 맞춤",
@@ -154,7 +158,16 @@
         "hue_offset": "색상 오프셋",
         "saturation_offset": "채도 오프셋",
         "value_offset": "명도(밝기) 오프셋",
-        
+
+        "hsl_pick": "HSL 선택",
+        "hsl_picker_for": "{0} 색상 선택기",
+        "close_picker": "닫기",
+        "hsl_target_color": "HSL 대상 색상",
+        "hsl_target_color_help": "색상환과 채도/명도 삼각형으로 대상 색상을 선택하세요. 아래 버튼으로 HSV Convert 또는 Offset에 적용할 수 있습니다.",
+        "apply_tint_to_offset": "오프셋으로 적용",
+        "apply_tint_to_convert": "변환으로 적용",
+
+
         "quick_shader_select": "빠른 셰이더 선택",
         "select_shader": "셰이더 선택",
         "oilpaint_warning": "⚠️ 오일 페인트 효과는 계산 부하가 큽니다. 먼저 파라미터를 조정한 다음 적용 버튼을 클릭하여 렌더링하세요. 성능 문제를 방지하기 위해 실시간 미리보기가 비활성화되었습니다.",
