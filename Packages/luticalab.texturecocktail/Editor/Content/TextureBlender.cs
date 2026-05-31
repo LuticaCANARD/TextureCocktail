@@ -198,10 +198,7 @@ namespace LuticaLab.TextureCocktail
         
         private Material GetMaterial()
         {
-            var type = baseWindow.GetType();
-            var field = type.GetField("_calcMaterial", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(baseWindow) as Material;
+            return baseWindow != null ? baseWindow.CalculationMaterial : null;
         }
         
         public override void OnShaderValueChanged()

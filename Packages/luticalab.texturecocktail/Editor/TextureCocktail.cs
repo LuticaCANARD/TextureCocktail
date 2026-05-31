@@ -60,6 +60,7 @@ namespace LuticaLab.TextureCocktail
         public RenderTexture PreviewTexture => _preview;
         public Texture2D PolygonMaskTexture => _polygonMaskTexture;
         public bool HasActivePolygonMask => _polygonMaskEnabled && HasAnyClosedPolygon();
+        internal Material CalculationMaterial => _calcMaterial;
         public event System.Action OnPreviewUpdated;
 
         internal bool PolygonMaskEnabled
@@ -431,6 +432,14 @@ namespace LuticaLab.TextureCocktail
         }
         public void SaveTexture()
         {
+            if (_preview == null || _targetTexture == null)
+            {
+                Debug.LogWarning(
+                    LanguageDisplayer.Instance.GetTranslatedLanguage("apply_shader_execute_error_not_create")
+                );
+                return;
+            }
+
             string path = EditorUtility.SaveFilePanel(
                 LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture")
                 , "Assets"
@@ -439,26 +448,40 @@ namespace LuticaLab.TextureCocktail
             if (!string.IsNullOrEmpty(path))
             {
                 RenderTexture prevActive = RenderTexture.active;
-                RenderTexture.active = _preview;
-                Texture2D textureToSave = new(_preview.width, _preview.height, TextureFormat.RGBA32, false);
-                textureToSave.ReadPixels(new Rect(0, 0, _preview.width, _preview.height), 0, 0);
-                textureToSave.Apply();
-                RenderTexture.active = prevActive;
-                System.IO.File.WriteAllBytes(path, textureToSave.EncodeToPNG());
+                Texture2D textureToSave = null;
+                try
+                {
+                    RenderTexture.active = _preview;
+                    textureToSave = new(_preview.width, _preview.height, TextureFormat.RGBA32, false);
+                    textureToSave.ReadPixels(new Rect(0, 0, _preview.width, _preview.height), 0, 0);
+                    textureToSave.Apply();
+                    System.IO.File.WriteAllBytes(path, textureToSave.EncodeToPNG());
+                }
+                finally
+                {
+                    RenderTexture.active = prevActive;
+                    if (textureToSave != null)
+                    {
+                        DestroyImmediate(textureToSave);
+                    }
+                }
 
                 AssetDatabase.Refresh();
-                var relativePath = "Assets" + path.Substring(Application.dataPath.Length);
-                var importer = AssetImporter.GetAtPath(relativePath);
-                if (importer != null)
+                if (path.StartsWith(Application.dataPath, StringComparison.Ordinal))
                 {
-                    if( importer is TextureImporter)
+                    var relativePath = "Assets" + path.Substring(Application.dataPath.Length);
+                    var importer = AssetImporter.GetAtPath(relativePath);
+                    if (importer != null)
                     {
-                        var textureImporter = importer as TextureImporter;
-                        Debug.Log("Setting texture import settings for: " + path);
-                        textureImporter.npotScale = TextureImporterNPOTScale.None;
-                        textureImporter.SaveAndReimport();
-                    }
+                        if( importer is TextureImporter)
+                        {
+                            var textureImporter = importer as TextureImporter;
+                            Debug.Log("Setting texture import settings for: " + path);
+                            textureImporter.npotScale = TextureImporterNPOTScale.None;
+                            textureImporter.SaveAndReimport();
+                        }
 
+                    }
                 }
                 string reply = string.Format(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture_success"), path);
                 Debug.Log(reply);
@@ -480,6 +503,16 @@ namespace LuticaLab.TextureCocktail
                 }
             }
             TextureABTestWindow.ShowWindow(_targetTexture, _preview, _targetTexture.name);
+        }
+        public void SetTargetTexture(Texture2D texture)
+        {
+            OnTextureChanged(texture);
+            if (_calcMaterial != null && texture != null)
+            {
+                _valueChanged = false;
+                CompileShader();
+            }
+            Repaint();
         }
         public void SetMaterialKeyword(string keyword, bool value)
         {
@@ -615,19 +648,18 @@ namespace LuticaLab.TextureCocktail
         private void OnShaderChange(Shader changeTo)
         {
             if (_shader == changeTo) return;
+            ReleaseShaderState();
             _shader = changeTo;
             
             // Clean up shader window when shader is set to null
             if (_shader == null)
             {
-                _shaderWindow = null;
-                _calcMaterial = null;
                 _keywordOnOff.Clear();
                 _shaderKeys = null;
                 return;
             }
             
-            _calcMaterial = new Material(_shader);
+            _calcMaterial = new Material(_shader) { hideFlags = HideFlags.HideAndDontSave };
             Debug.Log($"Shader changed to: {_shader.name}");
             string shaderLastName = _shader.name.Split('/')[^1];
             _shaderWindow = LoadShaderWindow(shaderLastName);
@@ -644,7 +676,9 @@ namespace LuticaLab.TextureCocktail
             {
                 _getShaderKeywordsMethod = typeof(ShaderUtil).GetMethod("GetShaderGlobalKeywords", BindingFlags.Static | BindingFlags.NonPublic);
             }
-            string[] keywords = (string[])_getShaderKeywordsMethod.Invoke(null, new object[] { _shader });
+            string[] keywords = _getShaderKeywordsMethod != null
+                ? (string[])_getShaderKeywordsMethod.Invoke(null, new object[] { _shader })
+                : Array.Empty<string>();
             _shaderKeys = keywords;
             foreach (var keyword in _shaderKeys)
             {
@@ -713,6 +747,20 @@ namespace LuticaLab.TextureCocktail
                 _shaderWindow.OnShaderValueChanged();
             }
             CompileShader();
+        }
+
+        private void ReleaseShaderState()
+        {
+            if (_shaderWindow != null)
+            {
+                DestroyImmediate(_shaderWindow);
+                _shaderWindow = null;
+            }
+            if (_calcMaterial != null)
+            {
+                DestroyImmediate(_calcMaterial);
+                _calcMaterial = null;
+            }
         }
 
         internal Rect GetImageDrawRect(Rect previewRect, int textureWidth, int textureHeight)
@@ -1329,6 +1377,7 @@ namespace LuticaLab.TextureCocktail
 
         private void OnDisable()
         {
+            ReleaseShaderState();
             if (_preview != null)
             {
                 _preview.Release();

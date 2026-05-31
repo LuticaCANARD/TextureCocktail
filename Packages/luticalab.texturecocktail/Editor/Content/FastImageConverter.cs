@@ -5,14 +5,12 @@ using UnityEngine;
 
 namespace LuticaLab.TextureCocktail
 {
-    public enum FilterMode
+    public enum FastImageFilterMode
     {
         None,
         EdgeDetection,
         Blur,
-        Sharpen,
-        Point,
-        Bilinear
+        Sharpen
     }
     
     [TextureCocktailShader("Hidden/FastImageConverter", DisplayName = "Fast Image Converter", Category = "Filters")]
@@ -21,7 +19,7 @@ namespace LuticaLab.TextureCocktail
         public override bool UseDefaultLayout { get => false; }
         public override string[] DontWantDisplayPropertyName { get => new string[] { }; }
         
-        private FilterMode filterMode = FilterMode.None;
+        private FastImageFilterMode filterMode = FastImageFilterMode.None;
         private bool _showBasicAdjustments = true;
         private bool _showPreview = true;
         
@@ -74,7 +72,7 @@ namespace LuticaLab.TextureCocktail
                 
                 // Filter Mode Selection
                 GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_mode"), EditorStyles.boldLabel);
-                var newFilterMode = (FilterMode)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_type"), filterMode);
+                var newFilterMode = (FastImageFilterMode)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_type"), filterMode);
                 if (newFilterMode != filterMode)
                 {
                     filterMode = newFilterMode;
@@ -84,16 +82,16 @@ namespace LuticaLab.TextureCocktail
                 // Display filter description
                 switch (filterMode)
                 {
-                    case FilterMode.None:
+                    case FastImageFilterMode.None:
                         EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_none_desc"), MessageType.Info);
                         break;
-                    case FilterMode.EdgeDetection:
+                    case FastImageFilterMode.EdgeDetection:
                         EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_edge_desc"), MessageType.Info);
                         break;
-                    case FilterMode.Blur:
+                    case FastImageFilterMode.Blur:
                         EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_blur_desc"), MessageType.Info);
                         break;
-                    case FilterMode.Sharpen:
+                    case FastImageFilterMode.Sharpen:
                         EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_sharpen_desc"), MessageType.Info);
                         break;
                 }
@@ -179,25 +177,25 @@ namespace LuticaLab.TextureCocktail
             // Show filter-specific parameters based on filter mode
             switch (filterMode)
             {
-                case FilterMode.Blur:
-                    if (material.HasProperty("_BlurSize"))
+                case FastImageFilterMode.Blur:
+                    if (material.HasProperty("_BlurAmount"))
                     {
-                        float blurSize = material.GetFloat("_BlurSize");
-                        blurSize = EditorGUILayout.Slider("Blur Size", blurSize, 0, 5);
-                        material.SetFloat("_BlurSize", blurSize);
+                        float blurSize = material.GetFloat("_BlurAmount");
+                        blurSize = EditorGUILayout.Slider("Blur Size", blurSize, 0, 1);
+                        material.SetFloat("_BlurAmount", blurSize);
                     }
                     break;
                     
-                case FilterMode.Sharpen:
-                    if (material.HasProperty("_SharpenStrength"))
+                case FastImageFilterMode.Sharpen:
+                    if (material.HasProperty("_SharpAmount"))
                     {
-                        float sharpen = material.GetFloat("_SharpenStrength");
+                        float sharpen = material.GetFloat("_SharpAmount");
                         sharpen = EditorGUILayout.Slider("Sharpen Strength", sharpen, 0, 2);
-                        material.SetFloat("_SharpenStrength", sharpen);
+                        material.SetFloat("_SharpAmount", sharpen);
                     }
                     break;
                     
-                case FilterMode.EdgeDetection:
+                case FastImageFilterMode.EdgeDetection:
                     if (material.HasProperty("_EdgeThreshold"))
                     {
                         float edgeThreshold = material.GetFloat("_EdgeThreshold");
@@ -254,7 +252,14 @@ namespace LuticaLab.TextureCocktail
             }
             
             // Enable the selected filter keyword
-            string targetKeyword = _filterKeywords[(int)filterMode];
+            int filterIndex = (int)filterMode;
+            if (filterIndex < 0 || filterIndex >= _filterKeywords.Length)
+            {
+                filterMode = FastImageFilterMode.None;
+                filterIndex = 0;
+            }
+
+            string targetKeyword = _filterKeywords[filterIndex];
             if (!string.IsNullOrEmpty(targetKeyword))
             {
                 baseWindow.SetMaterialKeyword(targetKeyword, true);
@@ -265,11 +270,7 @@ namespace LuticaLab.TextureCocktail
         
         private Material GetMaterial()
         {
-            // Access the material through reflection since it's private
-            var type = baseWindow.GetType();
-            var field = type.GetField("_calcMaterial", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(baseWindow) as Material;
+            return baseWindow != null ? baseWindow.CalculationMaterial : null;
         }
         
         public override void OnShaderValueChanged()

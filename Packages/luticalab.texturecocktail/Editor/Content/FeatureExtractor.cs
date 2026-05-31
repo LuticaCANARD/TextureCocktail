@@ -1,4 +1,3 @@
-using NUnit.Framework.Internal;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -54,7 +53,16 @@ namespace LuticaLab.TextureCocktail
             if (histogramTexture == null)
             {
                 histogramTexture = new Texture2D(256, 100, TextureFormat.RGBA32, false);
-                histogramTexture.filterMode = (UnityEngine.FilterMode)FilterMode.Point;
+                histogramTexture.filterMode = UnityEngine.FilterMode.Point;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (histogramTexture != null)
+            {
+                Object.DestroyImmediate(histogramTexture);
+                histogramTexture = null;
             }
         }
         
@@ -282,10 +290,16 @@ namespace LuticaLab.TextureCocktail
             // Pass 3: Histogram Enhancement
             int pass = (int)extractionMode;
             _passOrder = pass;
-            // Render using the specific pass
-            RenderTexture.active = preview;
-            Graphics.Blit(sourceTex, preview, material, pass);
-            RenderTexture.active = null;
+            RenderTexture previous = RenderTexture.active;
+            try
+            {
+                RenderTexture.active = preview;
+                Graphics.Blit(sourceTex, preview, material, pass);
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+            }
 
         }
 
@@ -304,26 +318,17 @@ namespace LuticaLab.TextureCocktail
         
         private Material GetMaterial()
         {
-            var type = baseWindow.GetType();
-            var field = type.GetField("_calcMaterial", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(baseWindow) as Material;
+            return baseWindow != null ? baseWindow.CalculationMaterial : null;
         }
         
         private RenderTexture GetPreviewTexture()
         {
-            var type = baseWindow.GetType();
-            var field = type.GetField("_preview", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(baseWindow) as RenderTexture;
+            return baseWindow != null ? baseWindow.PreviewTexture : null;
         }
         
         private Texture GetSourceTexture()
         {
-            var type = baseWindow.GetType();
-            var field = type.GetField("_targetTexture", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(baseWindow) as Texture;
+            return baseWindow != null ? baseWindow.TargetTexture : null;
         }
         
         private void CalculateHistogram()
@@ -337,43 +342,56 @@ namespace LuticaLab.TextureCocktail
             var previewTex = GetPreviewTexture();
             if (previewTex == null) return;
             
-            // Read pixels from preview texture
-            RenderTexture.active = previewTex;
-            Texture2D readTex = new Texture2D(previewTex.width, previewTex.height, TextureFormat.RGBA32, false);
-            readTex.ReadPixels(new Rect(0, 0, previewTex.width, previewTex.height), 0, 0);
-            readTex.Apply();
-            RenderTexture.active = null;
-            
-            Color[] pixels = readTex.GetPixels();
-            
-            // Calculate histogram based on analysis channel
-            foreach (var pixel in pixels)
+            Texture2D readTex = null;
+            try
             {
-                float value = 0;
-                switch (analysisChannel)
+                RenderTexture previous = RenderTexture.active;
+                try
                 {
-                    case AnalysisChannel.RGB:
-                        value = (pixel.r + pixel.g + pixel.b) / 3.0f;
-                        break;
-                    case AnalysisChannel.Red:
-                        value = pixel.r;
-                        break;
-                    case AnalysisChannel.Green:
-                        value = pixel.g;
-                        break;
-                    case AnalysisChannel.Blue:
-                        value = pixel.b;
-                        break;
-                    case AnalysisChannel.Luminance:
-                        value = 0.299f * pixel.r + 0.587f * pixel.g + 0.114f * pixel.b;
-                        break;
+                    RenderTexture.active = previewTex;
+                    readTex = new Texture2D(previewTex.width, previewTex.height, TextureFormat.RGBA32, false);
+                    readTex.ReadPixels(new Rect(0, 0, previewTex.width, previewTex.height), 0, 0);
+                    readTex.Apply();
                 }
-                
-                int bin = Mathf.Clamp(Mathf.FloorToInt(value * 255), 0, 255);
-                histogramData[bin]++;
+                finally
+                {
+                    RenderTexture.active = previous;
+                }
+
+                Color[] pixels = readTex.GetPixels();
+                foreach (var pixel in pixels)
+                {
+                    float value = 0;
+                    switch (analysisChannel)
+                    {
+                        case AnalysisChannel.RGB:
+                            value = (pixel.r + pixel.g + pixel.b) / 3.0f;
+                            break;
+                        case AnalysisChannel.Red:
+                            value = pixel.r;
+                            break;
+                        case AnalysisChannel.Green:
+                            value = pixel.g;
+                            break;
+                        case AnalysisChannel.Blue:
+                            value = pixel.b;
+                            break;
+                        case AnalysisChannel.Luminance:
+                            value = 0.299f * pixel.r + 0.587f * pixel.g + 0.114f * pixel.b;
+                            break;
+                    }
+
+                    int bin = Mathf.Clamp(Mathf.FloorToInt(value * 255), 0, 255);
+                    histogramData[bin]++;
+                }
             }
-            
-            Object.DestroyImmediate(readTex);
+            finally
+            {
+                if (readTex != null)
+                {
+                    Object.DestroyImmediate(readTex);
+                }
+            }
             
             // Update histogram texture
             UpdateHistogramTexture();

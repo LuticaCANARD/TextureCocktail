@@ -136,30 +136,38 @@ namespace LuticaLab.TextureCocktail
                 return;
             }
             
-            Material material = new Material(shader);
-            ConfigureMaterialForOperation(material, operationName);
-            
-            // Process
-            RenderTexture rt = new RenderTexture(selectedTexture.width, selectedTexture.height, 0, RenderTextureFormat.ARGB32);
-            rt.Create();
-            
-            material.SetTexture("_MainTex", selectedTexture);
-            RenderTexture.active = rt;
-            Graphics.Blit(selectedTexture, rt, material);
-            
-            Texture2D result = new Texture2D(selectedTexture.width, selectedTexture.height, TextureFormat.RGBA32, false);
-            result.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-            result.Apply();
-            
-            RenderTexture.active = null;
-            rt.Release();
-            
-            // Save
-            System.IO.File.WriteAllBytes(path, result.EncodeToPNG());
-            
-            // Cleanup
-            Object.DestroyImmediate(result);
-            Object.DestroyImmediate(material);
+            Material material = null;
+            RenderTexture rt = null;
+            Texture2D result = null;
+            RenderTexture previous = RenderTexture.active;
+            try
+            {
+                material = new Material(shader);
+                ConfigureMaterialForOperation(material, operationName);
+                rt = new RenderTexture(selectedTexture.width, selectedTexture.height, 0, RenderTextureFormat.ARGB32);
+                rt.Create();
+
+                material.SetTexture("_MainTex", selectedTexture);
+                RenderTexture.active = rt;
+                Graphics.Blit(selectedTexture, rt, material);
+
+                result = new Texture2D(selectedTexture.width, selectedTexture.height, TextureFormat.RGBA32, false);
+                result.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+                result.Apply();
+
+                System.IO.File.WriteAllBytes(path, result.EncodeToPNG());
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                if (result != null) Object.DestroyImmediate(result);
+                if (rt != null)
+                {
+                    rt.Release();
+                    Object.DestroyImmediate(rt);
+                }
+                if (material != null) Object.DestroyImmediate(material);
+            }
             
             AssetDatabase.Refresh();
             
@@ -276,14 +284,7 @@ namespace LuticaLab.TextureCocktail
             
             var window = EditorWindow.GetWindow<TextureCocktail>("TextureCocktail");
             window.Show();
-            
-            // Set the texture through reflection
-            var field = typeof(TextureCocktail).GetField("_targetTexture", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (field != null)
-            {
-                field.SetValue(window, selectedTexture);
-            }
+            window.SetTargetTexture(selectedTexture);
         }
     }
 }

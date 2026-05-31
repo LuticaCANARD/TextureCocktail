@@ -479,14 +479,21 @@ namespace LuticaLab.TextureCocktail
         {
             if (rt == null) return null;
             RenderTexture previous = RenderTexture.active;
-            RenderTexture.active = rt;
-            Texture2D baked = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false)
+            Texture2D baked = null;
+            try
             {
-                hideFlags = HideFlags.DontSave
-            };
-            baked.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-            baked.Apply(false, false);
-            RenderTexture.active = previous;
+                RenderTexture.active = rt;
+                baked = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false)
+                {
+                    hideFlags = HideFlags.DontSave
+                };
+                baked.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+                baked.Apply(false, false);
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+            }
             return baked;
         }
 
