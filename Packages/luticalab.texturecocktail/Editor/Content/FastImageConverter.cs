@@ -11,9 +11,11 @@ namespace LuticaLab.TextureCocktail
         EdgeDetection,
         Blur,
         Sharpen,
-        Point
+        Point,
+        Bilinear
     }
     
+    [TextureCocktailShader("Hidden/FastImageConverter", DisplayName = "Fast Image Converter", Category = "Filters")]
     public class FastImageConverter : TextureCocktailContent
     {
         public override bool UseDefaultLayout { get => false; }
@@ -21,8 +23,6 @@ namespace LuticaLab.TextureCocktail
         
         private FilterMode filterMode = FilterMode.None;
         private bool _showBasicAdjustments = true;
-        private bool _showFilters = false;
-        private bool _showAdvanced = false;
         private bool _showPreview = true;
         
         private static readonly string[] _filterKeywords = new string[] 

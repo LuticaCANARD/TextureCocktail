@@ -16,6 +16,7 @@ namespace LuticaLab.TextureCocktail
         Cartoon
     }
     
+    [TextureCocktailShader("Hidden/ArtisticEffects", DisplayName = "Artistic Effects", Category = "Effects")]
     public class ArtisticEffects : TextureCocktailContent
     {
         public override bool UseDefaultLayout { get => false; }
