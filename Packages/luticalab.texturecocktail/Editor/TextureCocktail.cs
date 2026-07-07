@@ -653,31 +653,20 @@ namespace LuticaLab.TextureCocktail
             _valueChanged = true;
         }
         /// <summary>
-        /// Found shader window by name.
+        /// Finds and instantiates a shader window by the shader's last path segment.
+        /// Uses <see cref="TextureCocktailPluginRegistry"/> so that third-party plugins defined
+        /// in any loaded assembly are discovered automatically — no manual registration needed.
         /// </summary>
-        /// <param name="shaderName">
-        ///     shader name with namespace prefix, for example "ImageSync"
-        ///     window script most be in LuticaLab.TextureCocktail namespace
-        /// </param>
-        /// <returns></returns>
+        /// <param name="shaderName">Last segment of the shader path, e.g. "ImageSync".</param>
         private TextureCocktailContent LoadShaderWindow(string shaderName)
         {
-            var foundType = Type.GetType("LuticaLab.TextureCocktail." + shaderName);
-            if (foundType == null)
+            var plugin = TextureCocktailPluginRegistry.CreatePlugin(shaderName);
+            if (plugin == null)
             {
-                Debug.LogWarning($"Shader window type '{shaderName}' not found. Ensure it is in the correct namespace and assembly.");
-                return null;
+                Debug.LogWarning($"[TextureCocktail] No plugin found for shader '{shaderName}'. " +
+                    $"Create a class named '{shaderName}' that inherits TextureCocktailContent.");
             }
-            if (foundType.IsSubclassOf(typeof(TextureCocktailContent)))
-            {
-                var shaderWindow = (TextureCocktailContent)CreateInstance(foundType);
-                return shaderWindow;
-            }
-            else
-            {
-                Debug.LogWarning($"Shader window type '{shaderName}' is not a subclass of TextureCocktailContent.");
-                return null;
-            }
+            return plugin;
         }
         private void OnTextureChanged(Texture2D newTexture)
         {
