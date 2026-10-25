@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -64,7 +65,7 @@ namespace LuticaLab.TextureCocktail
                 EditorGUILayout.BeginHorizontal();
                 foreach (var preset in _presets.Keys)
                 {
-                    if (GUILayout.Button(preset, GUILayout.Height(25)))
+                    if (GUILayout.Button(UiText.Text(preset), GUILayout.Height(25)))
                     {
                         ApplyPreset(preset);
                     }
@@ -74,7 +75,7 @@ namespace LuticaLab.TextureCocktail
                 
                 // Filter Mode Selection
                 GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_mode"), EditorStyles.boldLabel);
-                var newFilterMode = (FastImageFilterMode)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_type"), filterMode);
+                var newFilterMode = (FastImageFilterMode)UiText.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("filter_type"), filterMode);
                 if (newFilterMode != filterMode)
                 {
                     filterMode = newFilterMode;
@@ -172,7 +173,7 @@ namespace LuticaLab.TextureCocktail
                     if (material.HasProperty("_EdgeColor"))
                     {
                         Color edgeColor = material.GetColor("_EdgeColor");
-                        GUILayout.Label("Edge Color");
+                        GUILayout.Label(UiText.Text("Edge Color"));
                         edgeColor = EditorGUILayout.ColorField(edgeColor);
                         material.SetColor("_EdgeColor", edgeColor);
                     }

@@ -53,7 +53,7 @@ YourProject/
 
 ![색상 설정에 따라 달라지는 TextureCocktail의 실제 미리보기](docs/media/texture-workflow.gif)
 
-창은 한국어·영어·일본어를 지원하며 **LuticaLab → Setting → Language**에서 바꿀 수 있습니다. 중국어는 README 번역으로 제공합니다. 메뉴 경로와 프리셋 이름 등 일부 항목은 영어로 표시됩니다.
+창은 **한국어·영어·일본어·중국어(간체)**를 지원합니다. **LuticaLab → Setting → Language**에서 **简体中文**을 선택하면 중국어 UI로 전환되며, 선택한 언어는 Unity를 다시 열어도 유지됩니다. 메뉴 경로·셰이더 식별자·외부 플러그인 이름은 영어로 표시될 수 있습니다.
 
 ### 원본과 결과 비교하기
 

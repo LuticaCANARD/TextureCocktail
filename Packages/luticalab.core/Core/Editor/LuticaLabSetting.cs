@@ -10,14 +10,19 @@ namespace Assets.LuticaLab.Core.Editor
         public static void Init()
         {
             LuticaLabSetting window = (LuticaLabSetting)GetWindow(typeof(LuticaLabSetting));
-            window.titleContent = new GUIContent("Lutica Lab Setting");
+            window.titleContent = new GUIContent(LanguageDisplayer.Instance.GetTranslatedLanguage("Lutica Lab Setting"));
             window.Show();
         }
         private void OnGUI()
         {
-            GUILayout.Label("Lutica Lab Setting", EditorStyles.boldLabel);
-            
-            LanguageDisplayer.Instance.NowLanguage = (LuticaLabSupportLanguage)EditorGUILayout.EnumPopup("Language", LanguageDisplayer.Instance.NowLanguage);
+            var language = LanguageDisplayer.Instance;
+            string title = language.GetTranslatedLanguage("Lutica Lab Setting");
+            titleContent = new GUIContent(title);
+            GUILayout.Label(title, EditorStyles.boldLabel);
+            EditorGUI.BeginChangeCheck();
+            var selected = (LuticaLabSupportLanguage)EditorGUILayout.EnumPopup(
+                language.GetTranslatedLanguage("Language"), language.NowLanguage);
+            if (EditorGUI.EndChangeCheck()) language.NowLanguage = selected;
         }
     }
   

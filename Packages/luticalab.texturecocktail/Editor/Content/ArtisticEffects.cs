@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -55,7 +56,7 @@ namespace LuticaLab.TextureCocktail
                 
                 // Effect Selection
                 GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("effect_selection"), EditorStyles.boldLabel);
-                var newEffect = (ArtisticEffect)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("effect"), currentEffect);
+                var newEffect = (ArtisticEffect)UiText.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("effect"), currentEffect);
                 if (newEffect != currentEffect)
                 {
                     currentEffect = newEffect;
@@ -133,19 +134,19 @@ namespace LuticaLab.TextureCocktail
                     if (material.HasProperty("_PixelSize"))
                     {
                         float pixelSize = material.GetFloat("_PixelSize");
-                        pixelSize = EditorGUILayout.Slider("Pixel Size", pixelSize, 1, 100);
+                        pixelSize = EditorGUILayout.Slider(UiText.Text("Pixel Size"), pixelSize, 1, 100);
                         material.SetFloat("_PixelSize", pixelSize);
                     }
                     if (material.HasProperty("_PixelCenterX"))
                     {
                         float centerX = material.GetFloat("_PixelCenterX");
-                        centerX = EditorGUILayout.Slider("Center X", centerX, 0, 1);
+                        centerX = EditorGUILayout.Slider(UiText.Text("Center X"), centerX, 0, 1);
                         material.SetFloat("_PixelCenterX", centerX);
                     }
                     if (material.HasProperty("_PixelCenterY"))
                     {
                         float centerY = material.GetFloat("_PixelCenterY");
-                        centerY = EditorGUILayout.Slider("Center Y", centerY, 0, 1);
+                        centerY = EditorGUILayout.Slider(UiText.Text("Center Y"), centerY, 0, 1);
                         material.SetFloat("_PixelCenterY", centerY);
                     }
                     break;
@@ -154,7 +155,7 @@ namespace LuticaLab.TextureCocktail
                     if (material.HasProperty("_ColorLevels"))
                     {
                         float colorLevels = material.GetFloat("_ColorLevels");
-                        colorLevels = EditorGUILayout.Slider("Color Levels", colorLevels, 2, 20);
+                        colorLevels = EditorGUILayout.Slider(UiText.Text("Color Levels"), colorLevels, 2, 20);
                         material.SetFloat("_ColorLevels", colorLevels);
                     }
                     break;
@@ -163,13 +164,13 @@ namespace LuticaLab.TextureCocktail
                     if (material.HasProperty("_DotSize"))
                     {
                         float dotSize = material.GetFloat("_DotSize");
-                        dotSize = EditorGUILayout.Slider("Dot Size", dotSize, 1, 20);
+                        dotSize = EditorGUILayout.Slider(UiText.Text("Dot Size"), dotSize, 1, 20);
                         material.SetFloat("_DotSize", dotSize);
                     }
                     if (material.HasProperty("_DotAngle"))
                     {
                         float dotAngle = material.GetFloat("_DotAngle");
-                        dotAngle = EditorGUILayout.Slider("Dot Angle", dotAngle, 0, 360);
+                        dotAngle = EditorGUILayout.Slider(UiText.Text("Dot Angle"), dotAngle, 0, 360);
                         material.SetFloat("_DotAngle", dotAngle);
                     }
                     break;
@@ -178,7 +179,7 @@ namespace LuticaLab.TextureCocktail
                     if (material.HasProperty("_Radius"))
                     {
                         float radius = material.GetFloat("_Radius");
-                        radius = EditorGUILayout.Slider("Oil Paint Radius", radius, 1, 10);
+                        radius = EditorGUILayout.Slider(UiText.Text("Oil Paint Radius"), radius, 1, 10);
                         material.SetFloat("_Radius", radius);
                     }
                     break;
@@ -187,7 +188,7 @@ namespace LuticaLab.TextureCocktail
                     if (material.HasProperty("_EmbossStrength"))
                     {
                         float embossStrength = material.GetFloat("_EmbossStrength");
-                        embossStrength = EditorGUILayout.Slider("Emboss Strength", embossStrength, 0, 5);
+                        embossStrength = EditorGUILayout.Slider(UiText.Text("Emboss Strength"), embossStrength, 0, 5);
                         material.SetFloat("_EmbossStrength", embossStrength);
                     }
                     break;
@@ -196,13 +197,13 @@ namespace LuticaLab.TextureCocktail
                     if (material.HasProperty("_EdgeThreshold"))
                     {
                         float edgeThreshold = material.GetFloat("_EdgeThreshold");
-                        edgeThreshold = EditorGUILayout.Slider("Edge Threshold", edgeThreshold, 0, 1);
+                        edgeThreshold = EditorGUILayout.Slider(UiText.Text("Edge Threshold"), edgeThreshold, 0, 1);
                         material.SetFloat("_EdgeThreshold", edgeThreshold);
                     }
                     if (material.HasProperty("_ColorSteps"))
                     {
                         float colorSteps = material.GetFloat("_ColorSteps");
-                        colorSteps = EditorGUILayout.Slider("Color Steps", colorSteps, 2, 10);
+                        colorSteps = EditorGUILayout.Slider(UiText.Text("Color Steps"), colorSteps, 2, 10);
                         material.SetFloat("_ColorSteps", colorSteps);
                     }
                     break;

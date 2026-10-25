@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -224,7 +225,7 @@ namespace LuticaLab.TextureCocktail
                         EditorUtility.DisplayDialog(
                             GetLocalized("ab_invalid_folder_title"),
                             GetLocalized("ab_invalid_folder_msg"),
-                            "OK");
+                            UiText.Text("OK"));
                     }
                 }
             }
@@ -277,7 +278,7 @@ namespace LuticaLab.TextureCocktail
                 EditorUtility.DisplayDialog(
                     GetLocalized("ab_invalid_folder_title"),
                     GetLocalized("ab_invalid_folder_msg"),
-                    "OK");
+                    UiText.Text("OK"));
                 return;
             }
 
@@ -287,7 +288,7 @@ namespace LuticaLab.TextureCocktail
                 EditorUtility.DisplayDialog(
                     GetLocalized("ab_shader_not_found_title"),
                     GetLocalized("ab_shader_not_found_msg"),
-                    "OK");
+                    UiText.Text("OK"));
                 return;
             }
 
@@ -322,7 +323,7 @@ namespace LuticaLab.TextureCocktail
                 EditorUtility.DisplayDialog(
                     GetLocalized("ab_samples_done_title"),
                     string.Format(GetLocalized("ab_samples_done_msg"), folder),
-                    "OK");
+                    UiText.Text("OK"));
             }
         }
 

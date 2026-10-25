@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -414,7 +415,7 @@ namespace LuticaLab.TextureCocktail
             {
                 if (ShaderUtil.GetPropertyType(mat.shader, i) != ShaderUtil.ShaderPropertyType.TexEnv) continue;
                 string name = ShaderUtil.GetPropertyName(mat.shader, i);
-                string desc = ShaderUtil.GetPropertyDescription(mat.shader, i);
+                string desc = UiText.Text(ShaderUtil.GetPropertyDescription(mat.shader, i));
                 Texture current = mat.GetTexture(name);
                 string currentName = current != null ? current.name : "<empty>";
                 props.Add(name);

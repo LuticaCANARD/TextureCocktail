@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -68,7 +69,7 @@ namespace LuticaLab.TextureCocktail
                 
                 // Blend Mode Selection
                 GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("blend_mode_selection"), EditorStyles.boldLabel);
-                var newMode = (BlendMode)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("blend_mode"), blendMode);
+                var newMode = (BlendMode)UiText.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("blend_mode"), blendMode);
                 if (newMode != blendMode)
                 {
                     blendMode = newMode;

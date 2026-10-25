@@ -55,7 +55,7 @@ YourProject/
 
 ![TextureCocktail 的实际预览随颜色设置变化](docs/media/texture-workflow.gif)
 
-可在 **LuticaLab → Setting → Language** 中切换工具界面的语言。目前界面支持英语、韩语和日语；简体中文仅为 README 文档翻译，尚不提供中文界面。菜单路径、预设名称等部分项目仍以英语显示。
+工具界面支持**英语、韩语、日语和简体中文**。打开 **LuticaLab → Setting → Language** 并选择 **简体中文**，即可切换为中文界面。所选语言会在重启 Unity 后保留。菜单路径、着色器标识符和外部插件名称可能仍以英语显示。文档保留英文按钮名以便对照截图，简体中文界面会显示相应译名（如 **Brighten → 提亮**）。
 
 ### 对比原图与结果
 
