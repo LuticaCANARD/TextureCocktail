@@ -52,6 +52,11 @@ jobs:
           path: ${{ env.pathToCi }}
           clean: false
 
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
       # Load cached data from previous runs
       - name: Restore Cache
         uses: actions/cache@v4
@@ -61,9 +66,12 @@ jobs:
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj') }}
       
-      # Build Package Version Listing with Nuke
+      # The upstream bootstrap builds net6.0 and net8.0 into the same output
+      # directory. Build only the framework we run to avoid concurrent writes.
       - name: Build Package Version Listing
-        run: ${{ env.pathToCi }}/build.cmd BuildRepoListing --root ${{ env.pathToCi }} --list-publish-directory $GITHUB_WORKSPACE/${{ env.listPublishDirectory }} --current-package-name ${{ vars.PACKAGE_NAME }}
+        run: |
+          dotnet build "${{ env.pathToCi }}/PackageBuilder/PackageBuilder.csproj" --framework net8.0 /nodeReuse:false /p:UseSharedCompilation=false --verbosity quiet
+          dotnet run --project "${{ env.pathToCi }}/PackageBuilder/PackageBuilder.csproj" --no-build --framework net8.0 -- BuildRepoListing --root "${{ env.pathToCi }}" --list-publish-directory "$GITHUB_WORKSPACE/${{ env.listPublishDirectory }}" --current-package-name "${{ vars.PACKAGE_NAME }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
