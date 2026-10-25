@@ -213,7 +213,7 @@
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "luticalab.core": "0.0.4"
+        "luticalab.core": "0.0.5"
       }
     },
     "com.unity.modules.ai": {
