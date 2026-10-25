@@ -46,6 +46,7 @@ public static class TextureCocktailRegressionChecks
             Check("null textures preserve default and custom callback contracts", TestNullTextureCallback);
             Check("keyword selection clears the previous variant", TestKeywordTransition);
             Check("FeatureExtractor masks and preview notifications", TestFeatureMask);
+            _passed += LocalizationRegressionChecks.Run();
             _passed += MeshVisibilityRegressionChecks.Run();
             Debug.Log("TEXTURE_COCKTAIL_CHECKS_PASSED " + _passed + " groups");
         }

@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,7 +17,7 @@ namespace LuticaLab.TextureCocktail
         [MenuItem("LuticaLab/Texture Optimizer")]
         public static void ShowWindow()
         {
-            GetWindow<TextureOptimizer>("Texture Optimizer");
+            GetWindow<TextureOptimizer>(UiText.Text("texture_optimizer_title"));
         }
 
         // ── Enums ────────────────────────────────────────────────────────────
@@ -39,12 +40,27 @@ namespace LuticaLab.TextureCocktail
             public long EstimatedSizeBytes;
 
             // Issues / recommendations
-            public List<string> Warnings = new List<string>();
+            public List<ReportWarning> Warnings = new List<ReportWarning>();
             public List<TextureOptimizationAction> SuggestedActions = new List<TextureOptimizationAction>();
 
             // UI state
             public bool IsSelected;
             public bool FoldoutOpen;
+        }
+
+        // Keep the captured values while resolving their display language at repaint time.
+        private sealed class ReportWarning
+        {
+            private readonly string _key;
+            private readonly object[] _values;
+
+            internal ReportWarning(string key, params object[] values)
+            {
+                _key = key;
+                _values = values;
+            }
+
+            public override string ToString() => UiText.Format(_key, _values);
         }
 
         public enum TextureOptimizationAction
@@ -71,18 +87,19 @@ namespace LuticaLab.TextureCocktail
         // ── GUI ──────────────────────────────────────────────────────────────
         private void OnGUI()
         {
-            GUILayout.Label("Texture Optimizer", EditorStyles.boldLabel);
+            titleContent.text = UiText.Text("texture_optimizer_title");
+            GUILayout.Label(UiText.Text("texture_optimizer_title"), EditorStyles.boldLabel);
             EditorGUILayout.Space(4);
 
             // Scan settings
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            GUILayout.Label("Scan Settings", EditorStyles.boldLabel);
+            GUILayout.Label(UiText.Text("texture_optimizer_scan_settings"), EditorStyles.boldLabel);
 
             EditorGUILayout.BeginHorizontal();
-            _scanFolder = EditorGUILayout.TextField("Folder to Scan", _scanFolder);
-            if (GUILayout.Button("Browse", GUILayout.Width(70)))
+            _scanFolder = EditorGUILayout.TextField(UiText.Text("texture_optimizer_folder"), _scanFolder);
+            if (GUILayout.Button(UiText.Text("ab_browse"), GUILayout.Width(70)))
             {
-                string path = EditorUtility.OpenFolderPanel("Select Folder", _scanFolder, "");
+                string path = EditorUtility.OpenFolderPanel(UiText.Text("Select Folder"), _scanFolder, "");
                 if (!string.IsNullOrEmpty(path))
                 {
                     if (path.StartsWith(Application.dataPath))
@@ -93,15 +110,15 @@ namespace LuticaLab.TextureCocktail
             }
             EditorGUILayout.EndHorizontal();
 
-            _targetPlatform = (TargetPlatform)EditorGUILayout.EnumPopup("Target Platform", _targetPlatform);
-            _maxSizeThreshold = EditorGUILayout.IntField("Max Allowed Size (px)", _maxSizeThreshold);
-            _showOnlyWithIssues = EditorGUILayout.Toggle("Show Only Textures With Issues", _showOnlyWithIssues);
+            _targetPlatform = (TargetPlatform)UiText.EnumPopup("texture_optimizer_platform", _targetPlatform);
+            _maxSizeThreshold = EditorGUILayout.IntField(UiText.Text("texture_optimizer_max_size"), _maxSizeThreshold);
+            _showOnlyWithIssues = EditorGUILayout.Toggle(UiText.Text("texture_optimizer_show_issues"), _showOnlyWithIssues);
 
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(4);
 
-            if (GUILayout.Button("Scan Textures", GUILayout.Height(35)))
+            if (GUILayout.Button(UiText.Text("texture_optimizer_scan_btn"), GUILayout.Height(35)))
                 ScanTextures();
 
             if (_reports.Count > 0)
@@ -126,8 +143,8 @@ namespace LuticaLab.TextureCocktail
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 if (EditorUtility.DisplayCancelableProgressBar(
-                    "Scanning Textures",
-                    $"Analyzing: {Path.GetFileName(path)}",
+                    UiText.Text("Scanning Textures"),
+                    UiText.Format("Analyzing: {0}", Path.GetFileName(path)),
                     (float)processed / Mathf.Max(total, 1)))
                 {
                     break;
@@ -172,7 +189,7 @@ namespace LuticaLab.TextureCocktail
             // --- Warnings & actions ---
             if (!r.IsPOT)
             {
-                r.Warnings.Add("Texture dimensions are not power-of-two. GPU cannot generate mipmaps efficiently.");
+                r.Warnings.Add(new ReportWarning("Texture dimensions are not power-of-two. GPU cannot generate mipmaps efficiently."));
                 r.SuggestedActions.Add(TextureOptimizationAction.ResizeToPOT);
             }
 
@@ -181,19 +198,19 @@ namespace LuticaLab.TextureCocktail
 
             if (is3DTexture && !r.HasMipmaps)
             {
-                r.Warnings.Add("Mipmaps are disabled on a non-UI texture. Enable mipmaps to reduce aliasing and improve performance.");
+                r.Warnings.Add(new ReportWarning("Mipmaps are disabled on a non-UI texture. Enable mipmaps to reduce aliasing and improve performance."));
                 r.SuggestedActions.Add(TextureOptimizationAction.EnableMipmaps);
             }
 
             if (r.CurrentCompression == TextureImporterCompression.Uncompressed)
             {
-                r.Warnings.Add("Texture is uncompressed. Compression can reduce memory usage significantly.");
+                r.Warnings.Add(new ReportWarning("Texture is uncompressed. Compression can reduce memory usage significantly."));
                 r.SuggestedActions.Add(TextureOptimizationAction.EnableCompression);
             }
 
             if (r.Width > _maxSizeThreshold || r.Height > _maxSizeThreshold)
             {
-                r.Warnings.Add($"Texture exceeds {_maxSizeThreshold}px threshold ({r.Width}×{r.Height}). Consider reducing max size.");
+                r.Warnings.Add(new ReportWarning("Texture exceeds {0}px threshold ({1}×{2}). Consider reducing max size.", _maxSizeThreshold, r.Width, r.Height));
                 r.SuggestedActions.Add(TextureOptimizationAction.ReduceMaxSize);
             }
 
@@ -201,7 +218,7 @@ namespace LuticaLab.TextureCocktail
                 !importer.crunchedCompression &&
                 r.EstimatedSizeBytes > 1024 * 1024)
             {
-                r.Warnings.Add("Large compressed texture. Crunch compression can further reduce disk size.");
+                r.Warnings.Add(new ReportWarning("Large compressed texture. Crunch compression can further reduce disk size."));
                 r.SuggestedActions.Add(TextureOptimizationAction.EnableCrunchCompression);
             }
 
@@ -216,24 +233,24 @@ namespace LuticaLab.TextureCocktail
                 if (r.IsSelected) selectedCount++;
 
             EditorGUILayout.BeginHorizontal();
-            GUILayout.Label($"Found {_reports.Count} texture(s). {selectedCount} selected.", EditorStyles.boldLabel);
+            GUILayout.Label(UiText.Format("texture_optimizer_found", _reports.Count, selectedCount), EditorStyles.boldLabel);
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Select All", GUILayout.Width(90)))
+            if (GUILayout.Button(UiText.Text("texture_optimizer_select_all"), GUILayout.Width(90)))
                 foreach (var r in _reports) r.IsSelected = true;
-            if (GUILayout.Button("Deselect All", GUILayout.Width(95)))
+            if (GUILayout.Button(UiText.Text("texture_optimizer_deselect_all"), GUILayout.Width(95)))
                 foreach (var r in _reports) r.IsSelected = false;
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(2);
 
             GUI.enabled = selectedCount > 0;
-            if (GUILayout.Button("Apply Recommended Fixes to Selected", GUILayout.Height(30)))
+            if (GUILayout.Button(UiText.Text("texture_optimizer_apply_fixes"), GUILayout.Height(30)))
                 ApplySelectedFixes();
             GUI.enabled = true;
 
             if (_appliedCount > 0)
             {
-                EditorGUILayout.HelpBox($"Applied fixes to {_appliedCount} texture(s). Re-scan to verify.", MessageType.Info);
+                EditorGUILayout.HelpBox(UiText.Format("texture_optimizer_applied", _appliedCount), MessageType.Info);
             }
         }
 
@@ -266,34 +283,34 @@ namespace LuticaLab.TextureCocktail
                 true);
             GUILayout.FlexibleSpace();
             if (hasIssues)
-                GUILayout.Label($"⚠ {r.Warnings.Count} issue(s)", EditorStyles.miniLabel);
+                GUILayout.Label(UiText.Format("⚠ {0} issue(s)", r.Warnings.Count), EditorStyles.miniLabel);
             else
-                GUILayout.Label("✓ OK", EditorStyles.miniLabel);
+                GUILayout.Label(UiText.Text("✓ OK"), EditorStyles.miniLabel);
             EditorGUILayout.EndHorizontal();
 
             if (r.FoldoutOpen)
             {
                 EditorGUI.indentLevel++;
 
-                EditorGUILayout.LabelField("Path:", r.AssetPath, EditorStyles.miniLabel);
-                EditorGUILayout.LabelField("Compression:", r.CurrentCompression.ToString(), EditorStyles.miniLabel);
-                EditorGUILayout.LabelField("Max Size:", r.CurrentMaxSize.ToString(), EditorStyles.miniLabel);
-                EditorGUILayout.LabelField("Mipmaps:", r.HasMipmaps ? "Enabled" : "Disabled", EditorStyles.miniLabel);
-                EditorGUILayout.LabelField("Power of Two:", r.IsPOT ? "Yes" : "No", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(UiText.Text("Path:"), r.AssetPath, EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(UiText.Text("Compression:"), UiText.Text(ObjectNames.NicifyVariableName(r.CurrentCompression.ToString())), EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(UiText.Text("Max Size:"), r.CurrentMaxSize.ToString(), EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(UiText.Text("Mipmaps:"), UiText.Text(r.HasMipmaps ? "Enabled" : "Disabled"), EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(UiText.Text("Power of Two:"), UiText.Text(r.IsPOT ? "Yes" : "No"), EditorStyles.miniLabel);
 
                 if (r.Warnings.Count > 0)
                 {
-                    GUILayout.Label("Issues:", EditorStyles.boldLabel);
+                    GUILayout.Label(UiText.Text("Issues:"), EditorStyles.boldLabel);
                     foreach (var w in r.Warnings)
-                        EditorGUILayout.HelpBox(w, MessageType.Warning);
+                        EditorGUILayout.HelpBox(w.ToString(), MessageType.Warning);
                 }
 
                 // Quick-fix button
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Ping Asset", GUILayout.Width(90)))
+                if (GUILayout.Button(UiText.Text("texture_optimizer_ping"), GUILayout.Width(90)))
                     EditorGUIUtility.PingObject(r.Texture);
-                if (r.Warnings.Count > 0 && GUILayout.Button("Fix This Texture", GUILayout.Width(110)))
+                if (r.Warnings.Count > 0 && GUILayout.Button(UiText.Text("texture_optimizer_fix"), GUILayout.Width(110)))
                 {
                     ApplyFix(r);
                     _appliedCount++;

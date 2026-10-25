@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -77,7 +78,7 @@ namespace LuticaLab.TextureCocktail
                 
                 // Extraction Mode Selection
                 GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("extraction_mode"), EditorStyles.boldLabel);
-                var newMode = (FeatureExtractionMode)EditorGUILayout.EnumPopup(
+                var newMode = (FeatureExtractionMode)UiText.EnumPopup(
                     LanguageDisplayer.Instance.GetTranslatedLanguage("mode"), extractionMode);
                 
                 if (newMode != extractionMode)
@@ -121,7 +122,7 @@ namespace LuticaLab.TextureCocktail
                 {
                     GUILayout.Space(5);
                     GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("analysis_channel"), EditorStyles.boldLabel);
-                    var newChannel = (AnalysisChannel)EditorGUILayout.EnumPopup(
+                    var newChannel = (AnalysisChannel)UiText.EnumPopup(
                         LanguageDisplayer.Instance.GetTranslatedLanguage("channel"), analysisChannel);
                     
                     if (newChannel != analysisChannel)
@@ -213,7 +214,7 @@ namespace LuticaLab.TextureCocktail
             if (material.HasProperty("_EdgeSensitivity"))
             {
                 float sensitivity = material.GetFloat("_EdgeSensitivity");
-                sensitivity = EditorGUILayout.Slider("Edge Sensitivity", sensitivity, 0, 1);
+                sensitivity = EditorGUILayout.Slider(UiText.Text("Edge Sensitivity"), sensitivity, 0, 1);
                 material.SetFloat("_EdgeSensitivity", sensitivity);
                 EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("edge_sensitivity_help"), MessageType.None);
             }
@@ -221,7 +222,7 @@ namespace LuticaLab.TextureCocktail
             {
                 Color color_ = material.GetColor("_FeatureColor");
                 color_ = EditorGUILayout.ColorField(color_);
-                GUILayout.Label("Feature Color");
+                GUILayout.Label(UiText.Text("Feature Color"));
                 material.SetColor("_FeatureColor", color_);
                 EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("edge_color_help"), MessageType.None);
 
@@ -246,7 +247,7 @@ namespace LuticaLab.TextureCocktail
             if (material.HasProperty("_ColorThreshold"))
             {
                 float threshold = material.GetFloat("_ColorThreshold");
-                threshold = EditorGUILayout.Slider("Quantization Level", threshold, 0, 1);
+                threshold = EditorGUILayout.Slider(UiText.Text("Quantization Level"), threshold, 0, 1);
                 material.SetFloat("_ColorThreshold", threshold);
             }
             

@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System;
 using System.Collections.Generic;
 using Unity.Collections;
@@ -58,7 +59,7 @@ namespace LuticaLab.TextureCocktail
 
             if (!haveTargets)
             {
-                warnings.Add("The selected hierarchy has no active, enabled, readable triangle meshes to analyze.");
+                warnings.Add(UiText.Text("The selected hierarchy has no active, enabled, readable triangle meshes to analyze."));
                 return new MeshVisibilitySnapshot(surfaces, targetBounds, targetBounds, warnings);
             }
 
@@ -159,7 +160,7 @@ namespace LuticaLab.TextureCocktail
                         var descriptor = data.GetSubMesh(submesh);
                         if (descriptor.topology != MeshTopology.Triangles)
                         {
-                            Warn(warnings, renderer, "submesh " + submesh + " is not triangle topology and was skipped.");
+                            Warn(warnings, renderer, "submesh {0} is not triangle topology and was skipped.", submesh);
                             continue;
                         }
                         using (var indices = new NativeArray<int>(descriptor.indexCount, Allocator.Temp,
@@ -171,7 +172,7 @@ namespace LuticaLab.TextureCocktail
                                 invalid = indices[i] < 0 || indices[i] >= vertices.Length;
                             if (invalid)
                             {
-                                Warn(warnings, renderer, "submesh " + submesh + " has invalid triangle indices and was skipped.");
+                                Warn(warnings, renderer, "submesh {0} has invalid triangle indices and was skipped.", submesh);
                                 continue;
                             }
                             for (int i = 0; i < indices.Length; i++) triangles.Add(indices[i]);
@@ -187,7 +188,7 @@ namespace LuticaLab.TextureCocktail
             }
             catch (Exception exception)
             {
-                Warn(warnings, renderer, "could not be captured: " + exception.Message);
+                Warn(warnings, renderer, "could not be captured: {0}", exception.Message);
                 return null;
             }
             finally
@@ -216,7 +217,7 @@ namespace LuticaLab.TextureCocktail
                 || float.IsNaN(point.z) || float.IsInfinity(point.z));
         }
 
-        private static void Warn(List<string> warnings, Renderer renderer, string message)
-            => warnings.Add(renderer.name + " (" + renderer.GetType().Name + ") " + message);
+        private static void Warn(List<string> warnings, Renderer renderer, string message, params object[] values)
+            => warnings.Add(renderer.name + " (" + renderer.GetType().Name + ") " + UiText.Format(message, values));
     }
 }

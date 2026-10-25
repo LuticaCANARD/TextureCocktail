@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,7 +12,7 @@ namespace LuticaLab.TextureCocktail
         [MenuItem("LuticaLab/Quick Access Toolbar")]
         public static void ShowWindow()
         {
-            var window = GetWindow<QuickAccessToolbar>("Quick Tools");
+            var window = GetWindow<QuickAccessToolbar>(UiText.Text("Quick Tools"));
             window.minSize = new Vector2(200, 400);
         }
         
@@ -61,24 +62,25 @@ namespace LuticaLab.TextureCocktail
 
         private void OnGUI()
         {
-            GUILayout.Label("Quick Access Toolbar", EditorStyles.boldLabel);
+            titleContent.text = UiText.Text("Quick Tools");
+            GUILayout.Label(UiText.Text("Quick Access Toolbar"), EditorStyles.boldLabel);
             EditorGUILayout.Space();
             
             // Texture selection
             EditorGUILayout.BeginVertical("box");
-            GUILayout.Label("Select Texture", EditorStyles.boldLabel);
+            GUILayout.Label(UiText.Text("Select Texture"), EditorStyles.boldLabel);
             
             selectedTexture = (Texture2D)EditorGUILayout.ObjectField(selectedTexture, typeof(Texture2D), false);
             
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("Use Selected"))
+            if (GUILayout.Button(UiText.Text("Use Selected")))
             {
                 if (Selection.activeObject is Texture2D)
                 {
                     selectedTexture = Selection.activeObject as Texture2D;
                 }
             }
-            if (GUILayout.Button("Clear"))
+            if (GUILayout.Button(UiText.Text("ollama_clear")))
             {
                 selectedTexture = null;
             }
@@ -92,13 +94,13 @@ namespace LuticaLab.TextureCocktail
             if (selectedTexture != null)
             {
                 EditorGUILayout.BeginVertical("box");
-                GUILayout.Label("Quick Operations", EditorStyles.boldLabel);
+                GUILayout.Label(UiText.Text("Quick Operations"), EditorStyles.boldLabel);
                 
                 scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
                 
                 foreach (var preset in Presets)
                 {
-                    if (GUILayout.Button(preset.DisplayName, GUILayout.Height(35)))
+                    if (GUILayout.Button(UiText.Text(preset.DisplayName), GUILayout.Height(35)))
                     {
                         ApplyQuickOperation(preset);
                     }
@@ -111,14 +113,14 @@ namespace LuticaLab.TextureCocktail
                 
                 // Advanced options
                 EditorGUILayout.BeginVertical("box");
-                GUILayout.Label("Advanced", EditorStyles.boldLabel);
+                GUILayout.Label(UiText.Text("Advanced"), EditorStyles.boldLabel);
                 
-                if (GUILayout.Button("Open in TextureCocktail", GUILayout.Height(30)))
+                if (GUILayout.Button(UiText.Text("Open in TextureCocktail"), GUILayout.Height(30)))
                 {
                     OpenInTextureCocktail();
                 }
                 
-                if (GUILayout.Button("Batch Process Folder", GUILayout.Height(30)))
+                if (GUILayout.Button(UiText.Text("Batch Process Folder"), GUILayout.Height(30)))
                 {
                     BatchTextureProcessor.ShowWindow();
                 }
@@ -127,16 +129,16 @@ namespace LuticaLab.TextureCocktail
             }
             else
             {
-                EditorGUILayout.HelpBox("Select a texture to enable quick operations", MessageType.Info);
+                EditorGUILayout.HelpBox(UiText.Text("Select a texture to enable quick operations"), MessageType.Info);
             }
             
             EditorGUILayout.Space();
             
             // Info
             EditorGUILayout.BeginVertical("box");
-            GUILayout.Label("Keyboard Shortcuts", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("Alt+T", "Open TextureCocktail");
-            EditorGUILayout.LabelField("Alt+B", "Open Batch Processor");
+            GUILayout.Label(UiText.Text("Keyboard Shortcuts"), EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(Application.platform == RuntimePlatform.OSXEditor ? "Cmd+Option+T" : "Ctrl+Alt+T", UiText.Text("Open TextureCocktail"));
+            EditorGUILayout.LabelField(Application.platform == RuntimePlatform.OSXEditor ? "Cmd+Option+B" : "Ctrl+Alt+B", UiText.Text("Open Batch Processor"));
             EditorGUILayout.EndVertical();
         }
         
@@ -146,7 +148,7 @@ namespace LuticaLab.TextureCocktail
                 return;
             
             string path = EditorUtility.SaveFilePanel(
-                $"Save {preset.DisplayName} Texture",
+                UiText.Format("Save {0} Texture", UiText.Text(preset.DisplayName)),
                 "Assets",
                 selectedTexture.name + $"_{preset.FileSuffix}.png",
                 "png"
@@ -158,7 +160,7 @@ namespace LuticaLab.TextureCocktail
             Shader shader = Shader.Find(preset.ShaderName);
             if (shader == null)
             {
-                EditorUtility.DisplayDialog("Error", "Shader not found for operation", "OK");
+                EditorUtility.DisplayDialog(UiText.Text("Error"), UiText.Text("Shader not found for operation"), UiText.Text("OK"));
                 return;
             }
             
@@ -176,8 +178,8 @@ namespace LuticaLab.TextureCocktail
 
             AssetDatabase.Refresh();
             
-            EditorUtility.DisplayDialog("Success", 
-                $"Texture processed with {preset.DisplayName} and saved!", "OK");
+            EditorUtility.DisplayDialog(UiText.Text("Success"),
+                UiText.Format("Texture processed with {0} and saved!", UiText.Text(preset.DisplayName)), UiText.Text("OK"));
         }
 
         private void ConfigureMaterialForOperation(Material material, QuickOperation operation)

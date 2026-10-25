@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using LuticaLab.TextureCocktail;
 using System.Collections;
 using System.Collections.Generic;
@@ -43,21 +44,23 @@ namespace LuticaLab.TextureCocktail
             
             try
             {
-                GUILayout.Label("Image Sync Content");
+                GUILayout.Label(UiText.Text("Image Sync Content"));
 
                 //-----------------
-                GUILayout.Label("Sync Type");
-                var changed = (ImageSyncType)EditorGUILayout.EnumPopup("Sync Type", imageSyncType);
+                GUILayout.Label(UiText.Text("Sync Type"));
+                var changed = (ImageSyncType)UiText.EnumPopup("Sync Type", imageSyncType,
+                    value => (ImageSyncType)value == ImageSyncType.Add ? "Additive"
+                        : (ImageSyncType)value == ImageSyncType.Sub ? "Subtractive" : "Multiplicative");
                 switch (imageSyncType)
                 {
                     case ImageSyncType.Add:
-                        GUILayout.Label("Additive Sync: Combines images by adding pixel values.");
+                        GUILayout.Label(UiText.Text("Additive Sync: Combines images by adding pixel values."));
                         break;
                     case ImageSyncType.Sub:
-                        GUILayout.Label("Subtractive Sync: Combines images by subtracting pixel values.");
+                        GUILayout.Label(UiText.Text("Subtractive Sync: Combines images by subtracting pixel values."));
                         break;
                     case ImageSyncType.Mul:
-                        GUILayout.Label("Multiplicative Sync: Combines images by multiplying pixel values.");
+                        GUILayout.Label(UiText.Text("Multiplicative Sync: Combines images by multiplying pixel values."));
                         break;
                 }
                 if (changed != imageSyncType)
@@ -75,11 +78,11 @@ namespace LuticaLab.TextureCocktail
 
                 baseWindow.ShowShaderInfo();
 
-                _showCompileState = EditorGUILayout.BeginFoldoutHeaderGroup(_showCompileState, "Shader Compile State");
+                _showCompileState = EditorGUILayout.BeginFoldoutHeaderGroup(_showCompileState, UiText.Text("Shader Compile State"));
                 if(_showCompileState)
                     baseWindow.DisplayShaderOptions();// Display shader options if any
                 EditorGUILayout.EndFoldoutHeaderGroup();
-                _isShowPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_isShowPreview, "Preview");
+                _isShowPreview = EditorGUILayout.BeginFoldoutHeaderGroup(_isShowPreview, UiText.Text("preview"));
                 if (_isShowPreview)
                 {
                     baseWindow.DisplayPassedIamge();

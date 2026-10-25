@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -28,7 +29,7 @@ namespace LuticaLab.TextureCocktail
         [MenuItem("LuticaLab/AI Connector")]
         public static void ShowWindow()
         {
-            GetWindow<OllamaConnector>("AI Connector");
+            GetWindow<OllamaConnector>(UiText.Text("AI Connector"));
         }
 
         // ── Known backends ───────────────────────────────────────────────────
@@ -60,6 +61,8 @@ namespace LuticaLab.TextureCocktail
 
         private bool _busy;
         private string _statusMessage = "";
+        private object[] _statusArguments = Array.Empty<object>();
+        private bool _statusError;
         private CancellationTokenSource _cts;
 
         private AiBackendBase ActiveBackend => Backends[_backendIndex];
@@ -85,10 +88,10 @@ namespace LuticaLab.TextureCocktail
         // ── GUI ──────────────────────────────────────────────────────────────
         private void OnGUI()
         {
-            GUILayout.Label("AI Connector", EditorStyles.boldLabel);
+            titleContent.text = UiText.Text("AI Connector");
+            GUILayout.Label(UiText.Text("AI Connector"), EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "Local AI pipeline: text prompt (+ optional image) → AI-generated text response.\n" +
-                "Supports Ollama and any OpenAI-compatible API (LocalAI, LM Studio, Jan, Kobold…).",
+                UiText.Text("Local AI pipeline: text prompt (+ optional image) → AI-generated text response.\nSupports Ollama and any OpenAI-compatible API (LocalAI, LM Studio, Jan, Kobold…)."),
                 MessageType.Info);
 
             EditorGUILayout.Space(4);
@@ -105,14 +108,14 @@ namespace LuticaLab.TextureCocktail
         private void DrawBackendSection()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            GUILayout.Label("Backend & Server", EditorStyles.boldLabel);
+            GUILayout.Label(UiText.Text("Backend & Server"), EditorStyles.boldLabel);
 
             // Backend selector
             string[] backendNames = new string[Backends.Length];
             for (int i = 0; i < Backends.Length; i++)
                 backendNames[i] = Backends[i].DisplayName;
 
-            int newBackendIdx = EditorGUILayout.Popup("Backend", _backendIndex, backendNames);
+            int newBackendIdx = EditorGUILayout.Popup(UiText.Text("Backend"), _backendIndex, backendNames);
             if (newBackendIdx != _backendIndex)
             {
                 _backendIndex = newBackendIdx;
@@ -124,9 +127,9 @@ namespace LuticaLab.TextureCocktail
 
             // Server URL + List Models
             EditorGUILayout.BeginHorizontal();
-            _serverUrl = EditorGUILayout.TextField("Server URL", _serverUrl);
+            _serverUrl = EditorGUILayout.TextField(UiText.Text("Server URL"), _serverUrl);
             GUI.enabled = !_busy;
-            if (GUILayout.Button("List Models", GUILayout.Width(100)))
+            if (GUILayout.Button(UiText.Text("ollama_list_models"), GUILayout.Width(100)))
                 _ = FetchModelsAsync();
             GUI.enabled = true;
             EditorGUILayout.EndHorizontal();
@@ -135,7 +138,7 @@ namespace LuticaLab.TextureCocktail
             if (_availableModels.Count > 0)
             {
                 _selectedModelIndex = Mathf.Clamp(_selectedModelIndex, 0, _availableModels.Count - 1);
-                int newIdx = EditorGUILayout.Popup("Model", _selectedModelIndex, _availableModels.ToArray());
+                int newIdx = EditorGUILayout.Popup(UiText.Text("ollama_model"), _selectedModelIndex, _availableModels.ToArray());
                 if (newIdx != _selectedModelIndex)
                 {
                     _selectedModelIndex = newIdx;
@@ -144,7 +147,7 @@ namespace LuticaLab.TextureCocktail
             }
             else
             {
-                _selectedModel = EditorGUILayout.TextField("Model (manual)", _selectedModel);
+                _selectedModel = EditorGUILayout.TextField(UiText.Text("ollama_model_manual"), _selectedModel);
             }
 
             EditorGUILayout.EndVertical();
@@ -154,9 +157,9 @@ namespace LuticaLab.TextureCocktail
         private void DrawPromptSection()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            GUILayout.Label("Prompt", EditorStyles.boldLabel);
+            GUILayout.Label(UiText.Text("ollama_prompt_section"), EditorStyles.boldLabel);
 
-            GUILayout.Label("Text Prompt:");
+            GUILayout.Label(UiText.Text("ollama_prompt_label"));
             _promptText = EditorGUILayout.TextArea(_promptText, GUILayout.MinHeight(80));
 
             EditorGUILayout.Space(4);
@@ -164,11 +167,11 @@ namespace LuticaLab.TextureCocktail
             // Image attachment — only shown for backends that support it
             if (ActiveBackend.SupportsImageInput)
             {
-                _attachTexture = EditorGUILayout.Toggle("Attach Texture (vision models)", _attachTexture);
+                _attachTexture = EditorGUILayout.Toggle(UiText.Text("ollama_attach_texture"), _attachTexture);
                 if (_attachTexture)
                 {
                     _inputTexture = (Texture2D)EditorGUILayout.ObjectField(
-                        "Input Texture", _inputTexture, typeof(Texture2D), false);
+                        UiText.Text("Input Texture"), _inputTexture, typeof(Texture2D), false);
 
                     if (_inputTexture != null)
                     {
@@ -177,8 +180,7 @@ namespace LuticaLab.TextureCocktail
                     }
 
                     EditorGUILayout.HelpBox(
-                        "Requires a vision model (e.g. llava for Ollama, or a multimodal model for OpenAI-compatible backends). " +
-                        "The texture is converted to PNG and sent as base64.",
+                        UiText.Text("Requires a vision model (e.g. llava for Ollama, or a multimodal model for OpenAI-compatible backends). The texture is converted to PNG and sent as base64."),
                         MessageType.Info);
                 }
             }
@@ -187,10 +189,10 @@ namespace LuticaLab.TextureCocktail
 
             EditorGUILayout.BeginHorizontal();
             GUI.enabled = !_busy && !string.IsNullOrWhiteSpace(_promptText) && !string.IsNullOrEmpty(_selectedModel);
-            if (GUILayout.Button("Send Prompt", GUILayout.Height(32)))
+            if (GUILayout.Button(UiText.Text("ollama_send"), GUILayout.Height(32)))
                 _ = SendPromptAsync();
             GUI.enabled = _busy;
-            if (GUILayout.Button("Cancel", GUILayout.Width(80), GUILayout.Height(32)))
+            if (GUILayout.Button(UiText.Text("ollama_cancel"), GUILayout.Width(80), GUILayout.Height(32)))
                 _cts?.Cancel();
             GUI.enabled = true;
             EditorGUILayout.EndHorizontal();
@@ -202,7 +204,7 @@ namespace LuticaLab.TextureCocktail
         private void DrawResponseSection()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            GUILayout.Label("Response", EditorStyles.boldLabel);
+            GUILayout.Label(UiText.Text("ollama_response_section"), EditorStyles.boldLabel);
 
             _responseScroll = EditorGUILayout.BeginScrollView(_responseScroll, GUILayout.MinHeight(120));
             if (!string.IsNullOrEmpty(_responseText))
@@ -213,7 +215,7 @@ namespace LuticaLab.TextureCocktail
             }
             else
             {
-                GUILayout.Label("(no response yet)", EditorStyles.centeredGreyMiniLabel);
+                GUILayout.Label(UiText.Text("ollama_no_response"), EditorStyles.centeredGreyMiniLabel);
             }
             EditorGUILayout.EndScrollView();
 
@@ -221,7 +223,7 @@ namespace LuticaLab.TextureCocktail
             if (_attachTexture && _inputTexture != null && !string.IsNullOrEmpty(_responseText))
             {
                 EditorGUILayout.Space(4);
-                GUILayout.Label("Input Image Context:", EditorStyles.boldLabel);
+                GUILayout.Label(UiText.Text("ollama_input_context"), EditorStyles.boldLabel);
                 Rect imgRect = GUILayoutUtility.GetRect(160, 120);
                 GUI.DrawTexture(imgRect, _inputTexture, ScaleMode.ScaleToFit);
             }
@@ -230,11 +232,11 @@ namespace LuticaLab.TextureCocktail
             if (_responseImage != null)
             {
                 EditorGUILayout.Space(4);
-                GUILayout.Label("Response Image:", EditorStyles.boldLabel);
+                GUILayout.Label(UiText.Text("ollama_response_image"), EditorStyles.boldLabel);
                 Rect imgRect = GUILayoutUtility.GetRect(200, 200);
                 GUI.DrawTexture(imgRect, _responseImage, ScaleMode.ScaleToFit);
 
-                if (GUILayout.Button("Save Response Image…", GUILayout.Width(180)))
+                if (GUILayout.Button(UiText.Text("Save Response Image…"), GUILayout.Width(180)))
                     SaveResponseImage();
             }
 
@@ -242,7 +244,7 @@ namespace LuticaLab.TextureCocktail
             {
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Clear", GUILayout.Width(70)))
+                if (GUILayout.Button(UiText.Text("ollama_clear"), GUILayout.Width(70)))
                 {
                     _responseText = "";
                     _responseImage = null;
@@ -255,11 +257,10 @@ namespace LuticaLab.TextureCocktail
 
         private void DrawStatusBar()
         {
-            bool isError = _statusMessage.StartsWith("Error");
-            MessageType msgType = isError ? MessageType.Error : MessageType.Info;
-            EditorGUILayout.HelpBox(_statusMessage, msgType);
+            MessageType msgType = _statusError ? MessageType.Error : MessageType.Info;
+            EditorGUILayout.HelpBox(UiText.Format(_statusMessage, _statusArguments), msgType);
             if (_busy)
-                EditorGUILayout.HelpBox("⏳ Waiting for response…", MessageType.Info);
+                EditorGUILayout.HelpBox(UiText.Text("⏳ Waiting for response…"), MessageType.Info);
         }
 
         // ── Async operations ─────────────────────────────────────────────────
@@ -277,11 +278,11 @@ namespace LuticaLab.TextureCocktail
                 if (_availableModels.Count > 0)
                     _selectedModel = _availableModels[_selectedModelIndex];
 
-                SetStatus($"Found {_availableModels.Count} model(s).");
+                SetStatus("Found {0} model(s).", false, _availableModels.Count);
             }
             catch (Exception ex)
             {
-                SetStatus($"Error fetching models: {ex.Message}");
+                SetStatus("Error fetching models: {0}", true, ex.Message);
             }
             finally
             {
@@ -315,7 +316,7 @@ namespace LuticaLab.TextureCocktail
             }
             else
             {
-                SetStatus($"Error: {result.Error}");
+                SetStatus("Error: {0}", true, result.Error);
             }
 
             SetBusy(false);
@@ -327,25 +328,32 @@ namespace LuticaLab.TextureCocktail
         private void SaveResponseImage()
         {
             if (_responseImage == null) return;
-            string path = EditorUtility.SaveFilePanel("Save Response Image", "Assets", "ai_response.png", "png");
+            string path = EditorUtility.SaveFilePanel(UiText.Text("Save Response Image"), "Assets", "ai_response.png", "png");
             if (!string.IsNullOrEmpty(path))
             {
                 File.WriteAllBytes(path, _responseImage.EncodeToPNG());
                 AssetDatabase.Refresh();
-                SetStatus($"Image saved to {path}");
+                SetStatus("Image saved to {0}", false, path);
             }
         }
 
         private void SetBusy(bool busy, string msg = null)
         {
             _busy = busy;
-            if (msg != null) _statusMessage = msg;
+            if (msg != null)
+            {
+                _statusMessage = msg;
+                _statusArguments = Array.Empty<object>();
+                _statusError = false;
+            }
             EditorApplication.delayCall += Repaint;
         }
 
-        private void SetStatus(string msg)
+        private void SetStatus(string msg, bool isError = false, params object[] arguments)
         {
             _statusMessage = msg;
+            _statusArguments = arguments;
+            _statusError = isError;
             EditorApplication.delayCall += Repaint;
         }
     }

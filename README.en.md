@@ -55,7 +55,7 @@ Do not install duplicate copies of a package through both VCC and manual copying
 
 ![TextureCocktail's actual preview changing with color settings](docs/media/texture-workflow.gif)
 
-The editor UI supports **English, Korean, and Japanese**. Change it under **LuticaLab → Setting → Language**. Some items, including menu paths and preset names, remain in English.
+The editor UI supports **English, Korean, Japanese, and Simplified Chinese**. Open **LuticaLab → Setting → Language** and choose **简体中文** for the Chinese UI. Your language choice is retained when Unity restarts. Menu paths, shader identifiers, and external plugin names may appear in English.
 
 ### Compare the original and the result
 

@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -68,7 +69,7 @@ namespace LuticaLab.TextureCocktail
                 EditorGUILayout.BeginHorizontal();
                 foreach (var preset in _presets.Keys)
                 {
-                    if (GUILayout.Button(preset, GUILayout.Height(25)))
+                    if (GUILayout.Button(UiText.Text(preset), GUILayout.Height(25)))
                     {
                         _presets[preset]();
                     }
@@ -78,7 +79,7 @@ namespace LuticaLab.TextureCocktail
                 
                 // Mode Selection
                 GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("color_grading_mode"), EditorStyles.boldLabel);
-                var newMode = (ColorGradingMode)EditorGUILayout.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("mode"), gradingMode);
+                var newMode = (ColorGradingMode)UiText.EnumPopup(LanguageDisplayer.Instance.GetTranslatedLanguage("mode"), gradingMode);
                 if (newMode != gradingMode)
                 {
                     gradingMode = newMode;
@@ -141,21 +142,21 @@ namespace LuticaLab.TextureCocktail
             if (material.HasProperty("_Temperature"))
             {
                 float temp = material.GetFloat("_Temperature");
-                temp = EditorGUILayout.Slider("Temperature", temp, -1, 1);
+                temp = EditorGUILayout.Slider(UiText.Text("Temperature"), temp, -1, 1);
                 material.SetFloat("_Temperature", temp);
             }
             
             if (material.HasProperty("_Tint"))
             {
                 float tint = material.GetFloat("_Tint");
-                tint = EditorGUILayout.Slider("Tint", tint, -1, 1);
+                tint = EditorGUILayout.Slider(UiText.Text("Tint"), tint, -1, 1);
                 material.SetFloat("_Tint", tint);
             }
             
             if (material.HasProperty("_Exposure"))
             {
                 float exposure = material.GetFloat("_Exposure");
-                exposure = EditorGUILayout.Slider("Exposure", exposure, -3, 3);
+                exposure = EditorGUILayout.Slider(UiText.Text("Exposure"), exposure, -3, 3);
                 material.SetFloat("_Exposure", exposure);
             }
             
@@ -179,7 +180,7 @@ namespace LuticaLab.TextureCocktail
                     if (material.HasProperty("_Balance"))
                     {
                         float balance = material.GetFloat("_Balance");
-                        balance = EditorGUILayout.Slider("Balance", balance, -1, 1);
+                        balance = EditorGUILayout.Slider(UiText.Text("Balance"), balance, -1, 1);
                         material.SetFloat("_Balance", balance);
                     }
                     break;

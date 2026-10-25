@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using UnityEditor;
 using UnityEngine;
 
@@ -32,6 +33,7 @@ namespace LuticaLab.TextureCocktail
         {
             if (material == null || !material.HasProperty(propertyName)) return;
 
+            label = UiText.Text(label);
             float value = material.GetFloat(propertyName);
             float updated = TryGetRange(material.shader, propertyName, out Vector2 limits)
                 ? EditorGUILayout.Slider(label, value, limits.x, limits.y)

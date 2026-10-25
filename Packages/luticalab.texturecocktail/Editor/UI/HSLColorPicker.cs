@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -210,9 +211,9 @@ namespace LuticaLab.TextureCocktail
             float h, s, l;
             RGBToHSL(color, out h, out s, out l);
             EditorGUI.BeginChangeCheck();
-            float newH = EditorGUILayout.Slider("Hue", h * 360f, 0f, 360f) / 360f;
-            float newS = EditorGUILayout.Slider("Saturation", s, 0f, 1f);
-            float newL = EditorGUILayout.Slider("Lightness", l, 0f, 1f);
+            float newH = EditorGUILayout.Slider(UiText.Text("Hue"), h * 360f, 0f, 360f) / 360f;
+            float newS = EditorGUILayout.Slider(UiText.Text("Saturation"), s, 0f, 1f);
+            float newL = EditorGUILayout.Slider(UiText.Text("Lightness"), l, 0f, 1f);
             Color rgbField = EditorGUILayout.ColorField("RGB", color);
             if (EditorGUI.EndChangeCheck())
             {

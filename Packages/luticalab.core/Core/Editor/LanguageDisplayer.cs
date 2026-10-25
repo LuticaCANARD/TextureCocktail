@@ -11,9 +11,11 @@ namespace LuticaLab
 {
     public enum LuticaLabSupportLanguage
     {
-        English,
-        Korean,
-        Japanese
+        English = 0,
+        Korean = 1,
+        Japanese = 2,
+        [InspectorName("简体中文")]
+        ChineseSimplified = 3
     }
     [Serializable]
     public class Langattributs
@@ -30,29 +32,40 @@ namespace LuticaLab
             return instance;
         });
         public static LanguageDisplayer Instance => _languageDisplayer.Value;
-        // ID-Value...
+        private const string LanguagePreferenceKey = "LuticaLab.Language";
         Dictionary<string, string> _languageDictionary = new();
         LuticaLabSupportLanguage _lang = LuticaLabSupportLanguage.English;
         private void OnEnable()
         {
-            NowLanguage = GenerateToLuticaLabSupportLanguage(Application.systemLanguage);
-            LoadLanguageDict(NowLanguage);
+            _lang = GenerateToLuticaLabSupportLanguage(Application.systemLanguage);
+            string saved = EditorPrefs.GetString(LanguagePreferenceKey, string.Empty);
+            if (Enum.TryParse(saved, out LuticaLabSupportLanguage preferred)
+                && Enum.IsDefined(typeof(LuticaLabSupportLanguage), preferred))
+                _lang = preferred;
+            LoadLanguageDict(_lang);
         }
         public LuticaLabSupportLanguage NowLanguage
         {
             get => _lang;
             set
             {
+                if (!Enum.IsDefined(typeof(LuticaLabSupportLanguage), value))
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "Unsupported UI language.");
                 if (_lang != value)
                 {
                     _lang = value;
-                    _languageDictionary.Clear();
                     LoadLanguageDict(_lang);
+                    UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
                 }
+                string preference = value.ToString();
+                if (EditorPrefs.GetString(LanguagePreferenceKey, string.Empty) != preference)
+                    EditorPrefs.SetString(LanguagePreferenceKey, preference);
             }
         }
         void LoadLanguageDict(LuticaLabSupportLanguage lang)
         {
+            // Every switch starts from a clean dictionary; another locale must not leak through.
+            _languageDictionary.Clear();
             string assetPath = $"Packages/luticalab.core/Languages/{lang}.json";
             string json = null;
 
@@ -132,7 +145,9 @@ namespace LuticaLab
         {
             return lang == SystemLanguage.English 
                 || lang == SystemLanguage.Korean 
-                || lang == SystemLanguage.Japanese;
+                || lang == SystemLanguage.Japanese
+                || lang == SystemLanguage.ChineseSimplified
+                || lang == SystemLanguage.Chinese;
         }
         static public LuticaLabSupportLanguage GenerateToLuticaLabSupportLanguage(SystemLanguage lang,bool error = false)
         {
@@ -141,6 +156,8 @@ namespace LuticaLab
                 SystemLanguage.English => LuticaLabSupportLanguage.English,
                 SystemLanguage.Korean => LuticaLabSupportLanguage.Korean,
                 SystemLanguage.Japanese => LuticaLabSupportLanguage.Japanese,
+                SystemLanguage.ChineseSimplified => LuticaLabSupportLanguage.ChineseSimplified,
+                SystemLanguage.Chinese => LuticaLabSupportLanguage.ChineseSimplified,
                 _ => error ? throw new ArgumentException($"{lang} is Unsupported Language!") : LuticaLabSupportLanguage.English
             };
         }

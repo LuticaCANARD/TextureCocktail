@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -10,7 +11,7 @@ namespace LuticaLab.TextureCocktail
         [MenuItem("LuticaLab/TextureCocktail Batch Processor")]
         public static void ShowWindow()
         {
-            GetWindow<BatchTextureProcessor>("Batch Processor");
+            GetWindow<BatchTextureProcessor>(UiText.Text("Batch Processor"));
         }
         
         private List<Texture2D> textures = new List<Texture2D>();
@@ -28,29 +29,30 @@ namespace LuticaLab.TextureCocktail
         
         private void OnGUI()
         {
-            GUILayout.Label("Batch Texture Processor", EditorStyles.boldLabel);
+            titleContent.text = UiText.Text("Batch Processor");
+            GUILayout.Label(UiText.Text("Batch Texture Processor"), EditorStyles.boldLabel);
             EditorGUILayout.Space();
             
             // Shader selection
-            selectedShader = (Shader)EditorGUILayout.ObjectField("Shader to Apply", selectedShader, typeof(Shader), false);
+            selectedShader = (Shader)EditorGUILayout.ObjectField(UiText.Text("apply_shader"), selectedShader, typeof(Shader), false);
             
             EditorGUILayout.Space();
             
             // Common parameters
-            GUILayout.Label("Common Parameters", EditorStyles.boldLabel);
-            brightness = EditorGUILayout.Slider("Brightness", brightness, -1f, 1f);
-            contrast = EditorGUILayout.Slider("Contrast", contrast, 0f, 3f);
-            saturation = EditorGUILayout.Slider("Saturation", saturation, 0f, 2f);
-            gamma = EditorGUILayout.Slider("Gamma", gamma, 0.1f, 3f);
+            GUILayout.Label(UiText.Text("Common Parameters"), EditorStyles.boldLabel);
+            brightness = EditorGUILayout.Slider(UiText.Text("Brightness"), brightness, -1f, 1f);
+            contrast = EditorGUILayout.Slider(UiText.Text("Contrast"), contrast, 0f, 3f);
+            saturation = EditorGUILayout.Slider(UiText.Text("Saturation"), saturation, 0f, 2f);
+            gamma = EditorGUILayout.Slider(UiText.Text("Gamma"), gamma, 0.1f, 3f);
             
             EditorGUILayout.Space();
             
             // Output path
             EditorGUILayout.BeginHorizontal();
-            outputPath = EditorGUILayout.TextField("Output Path", outputPath);
-            if (GUILayout.Button("Browse", GUILayout.Width(80)))
+            outputPath = EditorGUILayout.TextField(UiText.Text("Output Path"), outputPath);
+            if (GUILayout.Button(UiText.Text("ab_browse"), GUILayout.Width(80)))
             {
-                string path = EditorUtility.OpenFolderPanel("Select Output Folder", "Assets", "");
+                string path = EditorUtility.OpenFolderPanel(UiText.Text("Select Output Folder"), "Assets", "");
                 if (!string.IsNullOrEmpty(path))
                 {
                     // Convert absolute path to relative path
@@ -65,7 +67,7 @@ namespace LuticaLab.TextureCocktail
             EditorGUILayout.Space();
             
             // Texture list
-            GUILayout.Label("Textures to Process", EditorStyles.boldLabel);
+            GUILayout.Label(UiText.Text("Textures to Process"), EditorStyles.boldLabel);
             
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.Height(200));
             
@@ -85,15 +87,15 @@ namespace LuticaLab.TextureCocktail
             
             // Add texture buttons
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("Add Texture"))
+            if (GUILayout.Button(UiText.Text("Add Texture")))
             {
                 textures.Add(null);
             }
-            if (GUILayout.Button("Add Selected Textures"))
+            if (GUILayout.Button(UiText.Text("Add Selected Textures")))
             {
                 AddSelectedTextures();
             }
-            if (GUILayout.Button("Clear All"))
+            if (GUILayout.Button(UiText.Text("Clear All")))
             {
                 textures.Clear();
             }
@@ -103,7 +105,7 @@ namespace LuticaLab.TextureCocktail
             
             // Process button
             GUI.enabled = selectedShader != null && textures.Count > 0 && !processing;
-            if (GUILayout.Button("Process All Textures", GUILayout.Height(40)))
+            if (GUILayout.Button(UiText.Text("Process All Textures"), GUILayout.Height(40)))
             {
                 ProcessTextures();
             }
@@ -112,7 +114,7 @@ namespace LuticaLab.TextureCocktail
             // Progress bar
             if (processing)
             {
-                EditorGUI.ProgressBar(EditorGUILayout.GetControlRect(), progress, $"Processing: {(int)(progress * 100)}%");
+                EditorGUI.ProgressBar(EditorGUILayout.GetControlRect(), progress, UiText.Format("Processing: {0}%", (int)(progress * 100)));
                 Repaint();
             }
         }
@@ -170,8 +172,8 @@ namespace LuticaLab.TextureCocktail
             progress = 1f;
             
             AssetDatabase.Refresh();
-            EditorUtility.DisplayDialog("Batch Processing Complete", 
-                $"Processed {textures.Count} textures successfully!", "OK");
+            EditorUtility.DisplayDialog(UiText.Text("Batch Processing Complete"),
+                UiText.Format("Processed {0} textures successfully!", textures.Count), UiText.Text("OK"));
         }
         
         private void ProcessSingleTexture(Texture2D sourceTexture, Material material)

@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using UnityEditor;
 using UnityEngine;
 
@@ -33,8 +34,8 @@ namespace LuticaLab.TextureCocktail
             }
             else
             {
-                EditorUtility.DisplayDialog("No Texture Selected", 
-                    "Please select a Texture2D in the Project window.", "OK");
+                EditorUtility.DisplayDialog(UiText.Text("No Texture Selected"),
+                    UiText.Text("Please select a Texture2D in the Project window."), UiText.Text("OK"));
             }
         }
         
@@ -55,8 +56,8 @@ namespace LuticaLab.TextureCocktail
             }
             else
             {
-                EditorUtility.DisplayDialog("No Texture Selected", 
-                    "Please select a Texture2D in the Project window.", "OK");
+                EditorUtility.DisplayDialog(UiText.Text("No Texture Selected"),
+                    UiText.Text("Please select a Texture2D in the Project window."), UiText.Text("OK"));
             }
         }
         
@@ -115,8 +116,8 @@ namespace LuticaLab.TextureCocktail
         {
             if (copiedMaterial == null)
             {
-                EditorUtility.DisplayDialog("No Settings Copied", 
-                    "Please copy shader settings first.", "OK");
+                EditorUtility.DisplayDialog(UiText.Text("No Settings Copied"),
+                    UiText.Text("Please copy shader settings first."), UiText.Text("OK"));
                 return;
             }
             
@@ -128,8 +129,8 @@ namespace LuticaLab.TextureCocktail
             }
             else
             {
-                EditorUtility.DisplayDialog("Shader Mismatch", 
-                    "Target material must use the same shader.", "OK");
+                EditorUtility.DisplayDialog(UiText.Text("Shader Mismatch"),
+                    UiText.Text("Target material must use the same shader."), UiText.Text("OK"));
             }
         }
         
@@ -139,13 +140,13 @@ namespace LuticaLab.TextureCocktail
             Shader shader = Shader.Find(shaderName);
             if (shader == null)
             {
-                EditorUtility.DisplayDialog("Shader Not Found", 
-                    $"Could not find shader: {shaderName}", "OK");
+                EditorUtility.DisplayDialog(UiText.Text("ab_shader_not_found_title"),
+                    UiText.Format("Could not find shader: {0}", shaderName), UiText.Text("OK"));
                 return;
             }
             
             string path = EditorUtility.SaveFilePanel(
-                "Save Processed Texture",
+                UiText.Text("Save Processed Texture"),
                 "Assets",
                 sourceTexture.name + "_processed.png",
                 "png"
@@ -181,8 +182,8 @@ namespace LuticaLab.TextureCocktail
             
             AssetDatabase.Refresh();
             Debug.Log($"Processed texture saved to: {path}");
-            EditorUtility.DisplayDialog("Success", 
-                $"Texture processed and saved to:\n{path}", "OK");
+            EditorUtility.DisplayDialog(UiText.Text("Success"),
+                UiText.Format("Texture processed and saved to:\n{0}", path), UiText.Text("OK"));
         }
     }
 }

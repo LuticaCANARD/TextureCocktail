@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -104,10 +105,11 @@ namespace LuticaLab.TextureCocktail
             if (_quickShaderLabelsCache == null) RebuildQuickShaderCache();
 
             GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("quick_shader_select"), EditorStyles.boldLabel);
+            _quickShaderLabelsCache[0] = LanguageDisplayer.Instance.GetTranslatedLanguage("quick_shader_none");
             EditorGUILayout.BeginHorizontal();
             int newShaderIndex = EditorGUILayout.Popup(
                 LanguageDisplayer.Instance.GetTranslatedLanguage("select_shader"),
-                _selectedQuickShaderIndex, _quickShaderLabelsCache);
+                _selectedQuickShaderIndex, UiText.Options(_quickShaderLabelsCache));
             if (GUILayout.Button("⟳", EditorStyles.miniButton, GUILayout.Width(24)))
             {
                 TextureCocktailShaderRegistry.Refresh();
@@ -135,7 +137,7 @@ namespace LuticaLab.TextureCocktail
                 var pkg = _quickShaderPackagesCache[_selectedQuickShaderIndex - 1];
                 if (!string.IsNullOrEmpty(pkg.Description))
                 {
-                    EditorGUILayout.HelpBox(pkg.Description, MessageType.None);
+                    EditorGUILayout.HelpBox(UiText.Text(pkg.Description), MessageType.None);
                 }
             }
 
@@ -323,7 +325,7 @@ namespace LuticaLab.TextureCocktail
             for (int i = 0; i < ShaderUtil.GetPropertyCount(_shader); i++)
             {
                 string propertyName = ShaderUtil.GetPropertyName(_shader, i);
-                string displayName = ShaderUtil.GetPropertyDescription(_shader, i);
+                string displayName = UiText.Text(ShaderUtil.GetPropertyDescription(_shader, i));
                 if (propertyName == _mainTexProperty)
                 {
                     continue;

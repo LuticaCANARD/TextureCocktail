@@ -1,3 +1,4 @@
+using UiText = LuticaLab.TextureCocktail.TextureCocktailLocalization;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -53,7 +54,7 @@ namespace LuticaLab.TextureCocktail
                 EditorGUILayout.BeginHorizontal();
                 foreach (var preset in _presets.Keys)
                 {
-                    if (GUILayout.Button(preset, GUILayout.Height(25)))
+                    if (GUILayout.Button(UiText.Text(preset), GUILayout.Height(25)))
                     {
                         _presets[preset]();
                     }
@@ -76,13 +77,13 @@ namespace LuticaLab.TextureCocktail
                         EditorGUI.BeginChangeCheck();
                         
                         GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("hue_convert"), EditorStyles.boldLabel);
-                        float h = EditorGUILayout.Slider("Hue", currentConvert.x, -1f, 1f);
+                        float h = EditorGUILayout.Slider(UiText.Text("Hue"), currentConvert.x, -1f, 1f);
                         
                         GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("saturation_convert"), EditorStyles.boldLabel);
-                        float s = EditorGUILayout.Slider("Saturation", currentConvert.y, -1f, 1f);
+                        float s = EditorGUILayout.Slider(UiText.Text("Saturation"), currentConvert.y, -1f, 1f);
                         
                         GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("value_convert"), EditorStyles.boldLabel);
-                        float v = EditorGUILayout.Slider("Value", currentConvert.z, -1f, 1f);
+                        float v = EditorGUILayout.Slider(UiText.Text("Value"), currentConvert.z, -1f, 1f);
                         
                         if (EditorGUI.EndChangeCheck())
                         {
@@ -108,13 +109,13 @@ namespace LuticaLab.TextureCocktail
                         EditorGUI.BeginChangeCheck();
                         
                         GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("hue_offset"), EditorStyles.boldLabel);
-                        float h = EditorGUILayout.Slider("Hue Offset", currentOffset.x, -1f, 1f);
+                        float h = EditorGUILayout.Slider(UiText.Text("hue_offset"), currentOffset.x, -1f, 1f);
                         
                         GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("saturation_offset"), EditorStyles.boldLabel);
-                        float s = EditorGUILayout.Slider("Saturation Offset", currentOffset.y, -1f, 1f);
+                        float s = EditorGUILayout.Slider(UiText.Text("saturation_offset"), currentOffset.y, -1f, 1f);
                         
                         GUILayout.Label(LanguageDisplayer.Instance.GetTranslatedLanguage("value_offset"), EditorStyles.boldLabel);
-                        float v = EditorGUILayout.Slider("Value Offset", currentOffset.z, -1f, 1f);
+                        float v = EditorGUILayout.Slider(UiText.Text("Value Offset"), currentOffset.z, -1f, 1f);
                         
                         if (EditorGUI.EndChangeCheck())
                         {
