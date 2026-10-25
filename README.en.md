@@ -1,8 +1,8 @@
 # TextureCocktail
 
-[한국어](README.md) · **English** · [日本語](README.ja.md) · [简体中文](README.zh-CN.md)
+**English** · [한국어](README.ko.md) · [日本語](README.ja.md) · [简体中文](README.zh-CN.md)
 
-This is the English README. Use the links above to switch documentation languages. All versions share the same real screenshots and GIFs, which show the English UI.
+English is the default documentation language. Use the links above to switch languages. All versions share the same screenshots, GIFs, and tool comparisons with English labels.
 
 Adjust texture colors and effects in the Unity Editor, compare the result with the original, and save it as a PNG. You can also inspect avatars and objects from multiple directions to identify candidate polygons that remain hidden.
 
@@ -10,7 +10,7 @@ Adjust texture colors and effects in the Unity Editor, compare the result with t
 
 ![Editing a texture with TextureCocktail in Unity](docs/media/texture-editor.png)
 
-The images and GIFs in this document show the tool running in the Unity Editor. See the [capture environment and examples (Korean)](docs/media/capture-notes.md) for details.
+The screenshots and GIFs show the tool running in the Unity Editor. The tool comparison images below use actual shader outputs rendered by TextureCocktail. See the [capture environment and examples (Korean)](docs/media/capture-notes.md) for details.
 
 ## Installation
 
@@ -55,7 +55,7 @@ Do not install duplicate copies of a package through both VCC and manual copying
 
 ![TextureCocktail's actual preview changing with color settings](docs/media/texture-workflow.gif)
 
-The editor UI supports **English, Korean, Japanese, and Simplified Chinese**. Open **LuticaLab → Setting → Language** and choose **简体中文** for the Chinese UI. Your language choice is retained when Unity restarts. Menu paths, shader identifiers, and external plugin names may appear in English.
+The editor UI supports **English, Korean, Japanese, and Simplified Chinese**. On first launch, the UI uses **English**, regardless of your operating system language. Open **LuticaLab → Setting → Language** to choose another language, such as **简体中文**. Your explicit choice is retained when Unity restarts. Menu paths, shader identifiers, and external plugin names may appear in English.
 
 ### Compare the original and the result
 
@@ -84,6 +84,52 @@ The following tools are available through the main window's quick shader selecti
 | Apply pixelation, halftone, or cartoon effects | **Effects/Artistic Effects** | Choose an effect → adjust its values |
 | Extract edges and color features | **Analysis/Feature Extractor** | Choose an extraction mode → adjust channels and sensitivity |
 | Generate a normal map from a height image | **Generators/Normal Map Generator** | Assign a texture → adjust strength and height scale |
+
+### See what each tool produces
+
+These comparisons use a procedural 512 × 512 metal control-panel texture, a grime texture, and a height map. Each result is rendered by the actual TextureCocktail shader; the sheets arrange the inputs and outputs with English labels. The values below reproduce the examples. See the [capture notes (Korean)](docs/media/capture-notes.md) for the generation steps.
+
+#### Fast Image Converter — brightness and detail
+
+Make a texture brighter, soften detail, or bring edges into focus. Shown: **Brighten** preset (Brightness **0.2**, Contrast **1.1**, Saturation **1.05**, Gamma **1**), **Blur 0.8**, and **Sharpen 1.5**.
+
+![Original metal panel compared with Brighten, blur, and sharpen results](docs/media/tool-fast-image-converter.png)
+
+#### Color Correction — warm and cool variants
+
+Create warmer or cooler versions of the same prop. Both examples use **Basic** grading and Exposure **+0.5**; Temperature is **+0.9** for the warm version and **−0.9** for the cool version.
+
+![Original metal panel compared with warm and cool color corrections](docs/media/tool-color-correction.png)
+
+#### HSV Adjustment — recolor a surface
+
+Change the painted surface color while retaining its shading. With HSV Convert **0**, the examples use HSV Offset **(0.25, 0.1, 0)** and **(0.5, 0.1, 0)**.
+
+![Original metal panel compared with two hue and saturation offset variants](docs/media/tool-hsv-adjustment.png)
+
+#### Texture Blender — add grime
+
+Combine a base texture with a separate grime texture to weather a prop. The example uses **Multiply**, Blend Amount **0.75**, with the blend mask disabled.
+
+![Base panel and grime texture alongside the multiplied blend result](docs/media/tool-texture-blender.png)
+
+#### Artistic Effects — stylize a prop
+
+This example first brightens the input with Color Correction (**Basic**, Exposure **+1.5**) to keep the stylized details readable. Compare **Pixelate 16** with center **(0.5, 0.5)**, **Halftone** with dot size **10** and angle **45°**, and **Cartoon** with **8** steps and edge threshold **0.15**.
+
+![Brightened panel compared with pixelation, halftone, and cartoon effects](docs/media/tool-artistic-effects.png)
+
+#### Feature Extractor — inspect edges
+
+Extract the panel’s outlines for inspection or a graphic effect. Shown: **Sobel** with Sensitivity **0.5** and **Canny** with Sensitivity **0.8**; both use cyan edges at Intensity **1**.
+
+![Original panel compared with cyan Sobel and Canny edge extraction](docs/media/tool-feature-extractor.png)
+
+#### Normal Map Generator — add surface relief
+
+Start with the grayscale height image and compare normal-map strengths **2** and **10**, both with Height Scale **1**. The stronger setting makes changes in height more pronounced.
+
+![Grayscale height input and normal maps rendered at strengths two and ten](docs/media/tool-normal-map-generator.png)
 
 ### Apply the same adjustments to multiple textures
 

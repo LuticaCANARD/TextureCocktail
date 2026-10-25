@@ -1,6 +1,6 @@
 # README 미디어 촬영 기록
 
-[사용자 README](../../README.md)
+[한국어 사용자 README](../../README.ko.md) · [English README](../../README.md)
 
 ## 환경과 출처
 
@@ -11,7 +11,7 @@
 - 이미지 예제: 저장소의 [`Assets/rety.png`](../../Assets/rety.png). 내용을 보기 쉽게 원본 좌표 `(0, 500)`에서 `1024 × 1024` 영역을 잘라 `768 × 768`로 축소한 임시 PNG를 사용했습니다. 원본 파일은 변경하지 않았습니다.
 - 메시 예제: [생성기](../examples/MeshVisibilityDemo.cs)로 만든 두꺼운 외벽, 열린 출입구, 내부 상자가 있는 작은 작업실 건물입니다. 외부 모델이나 텍스처가 필요하지 않습니다. 예제 머티리얼은 **Built-in Render Pipeline의 Standard 셰이더**를 사용합니다.
 
-모든 화면은 실행 중인 Unity의 실제 TextureCocktail 창을 캡처했습니다. 임시 에디터 스크립트로 실제 프리셋 처리 메서드, A/B 슬라이더 값, Scene 뷰 회전과 X-ray 설정을 적용한 뒤 `InternalEditorUtility.ReadScreenPixel`로 기록했습니다. GIF는 **자동 진행한 실제 기능 시연**이며 마우스 조작을 녹화한 영상은 아닙니다. UI나 결과 이미지를 다시 그리거나 합성하지 않았습니다.
+기존 UI 이미지와 GIF는 실행 중인 Unity의 실제 TextureCocktail 창을 캡처했습니다. 임시 에디터 스크립트로 실제 프리셋 처리 메서드, A/B 슬라이더 값, Scene 뷰 회전과 X-ray 설정을 적용한 뒤 `InternalEditorUtility.ReadScreenPixel`로 기록했습니다. GIF는 **자동 진행한 실제 기능 시연**이며 마우스 조작을 녹화한 영상은 아닙니다. 이 UI 이미지와 GIF는 화면을 다시 그리거나 합성하지 않았습니다. 아래 도구별 비교 이미지는 실제 셰이더 출력에 설명을 붙인 별도의 비교 패널입니다.
 
 텍스처 GIF는 6 fps, 메시 GIF는 10 fps·130프레임·13초이며 256색 팔레트로 변환했습니다. 메시 이미지와 GIF의 크기는 1400 × 1020입니다. GIF의 색상은 팔레트 변환 때문에 PNG나 Unity 원본과 조금 다를 수 있습니다. 임시 캡처 코드는 제품 패키지에 포함되지 않으며, 건물 생성기는 재현용 소스로 별도 제공합니다.
 
@@ -66,3 +66,30 @@
 방향별 개수에는 같은 삼각형이 중복될 수 있으며, 전체 보임 148개는 대각선을 포함한 98방향 결과의 합집합입니다. 따라서 위 여섯 개수를 더해 전체 보임 수를 계산하지 않습니다.
 
 이 결과는 촬영 당시 형상·포즈에 대해 모델 외부의 98방향과 삼각형당 4지점을 검사한 결과입니다. 유한한 방향·표면 샘플만으로 가능한 모든 시점에서 보이지 않음을 증명하거나 삭제 가능성을 확정하지 않습니다. 좁은 틈이나 내부 시점에서 추가로 보일 수 있으며, 실제 월드에서 실내에 들어갈 수 있거나 문·벽의 배치가 바뀐다면 그 상태에서도 확인해야 합니다.
+
+
+## 도구별 실제 처리 결과 갤러리
+
+일곱 비교 이미지는 영어 설명이 붙은 **실제 셰이더 출력 비교 패널**입니다. 제품 창의 스크린샷과는 구분됩니다. 재현용 코드가 TextureCocktail 편집기를 생성하고, 실제 도구 선택·모드 설정·미리보기 렌더 경로를 거쳐 얻은 픽셀을 PNG로 내보냅니다. 실행기가 그 출력과 영어 제목·설정값을 비교 패널로 배치합니다. 효과 결과를 별도로 그리거나 보정하지 않습니다.
+
+입력은 메모리에서 생성한 512 × 512 금속 패널, 오염 레이어와 회색조 높이 맵입니다. 패널의 도색·이음새·다이얼·나사·경고 띠를 같은 위치에서 비교할 수 있습니다. 인물이나 외부 모델·텍스처는 사용하지 않으며 원본 프로젝트의 에셋과 씬을 변경하지 않습니다. 이미지 안의 표기는 모든 README에서 공통으로 사용하는 영어입니다.
+
+| 비교 이미지 | 실제 적용 설정 |
+| --- | --- |
+| [Fast Image Converter](tool-fast-image-converter.png) | 원본, Brighten 프리셋, Blur 0.8, Sharpen 1.5 비교. Brighten은 밝기 0.2·대비 1.1·채도 1.05·감마 1. |
+| [Color Correction](tool-color-correction.png) | Basic 모드에서 색온도 +0.9와 -0.9, 노출 +0.5 비교. |
+| [HSV Adjustment](tool-hsv-adjustment.png) | HSV Offset의 Hue +0.25 또는 +0.5, Saturation +0.1, Value 0. |
+| [Texture Blender](tool-texture-blender.png) | 패널과 별도 오염 텍스처를 Multiply, Amount 0.75, 마스크 꺼짐으로 합성. |
+| [Artistic Effects](tool-artistic-effects.png) | Color Correction Basic 노출 +1.5로 먼저 밝힌 입력을 공통 사용. Pixelate 크기 16, Halftone 점 크기 10·각도 45°, Cartoon 단계 8·엣지 임계값 0.15. |
+| [Feature Extractor](tool-feature-extractor.png) | 청록색 특징 표시로 Edge Detection 민감도 0.5와 Canny Edge 민감도 0.8 비교. |
+| [Normal Map Generator](tool-normal-map-generator.png) | 같은 높이 맵을 강도 2와 10, 높이 스케일 1로 변환. |
+
+### 갤러리 재현
+
+저장소를 clone한 Windows 환경에서 이 프로젝트를 Unity에서 닫은 뒤 다음을 실행합니다. 다른 프로젝트는 열어 두어도 됩니다. 그래픽 기능을 사용할 수 있는 Unity Editor가 필요합니다. 화면 캡처를 사용하지 않으므로 다른 창이 앞에 있어도 이미지에 섞이지 않습니다.
+
+```powershell
+.\docs\examples\Run-ToolGalleryCapture.ps1 -UnityPath 'C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe'
+```
+
+[실행기](../examples/Run-ToolGalleryCapture.ps1)는 [비교 패널 생성기](../examples/ToolGalleryCapture.cs)를 고유한 임시 Editor 폴더로 복사한 뒤 그래픽 기능이 활성화된 Unity 배치 모드에서 실행합니다. `docs/media/tool-*.png` 일곱 파일을 다시 만들고 임시 폴더를 제거합니다. 출력 검사는 처리 결과가 입력과 달라졌는지와 오류 셰이더의 자홍색 화면이 아닌지를 확인하며, 로그는 `Logs/ToolGalleryCapture.log`에 남습니다.

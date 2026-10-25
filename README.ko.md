@@ -1,0 +1,213 @@
+# TextureCocktail
+
+[English](README.md) · **한국어** · [日本語](README.ja.md) · [简体中文](README.zh-CN.md)
+
+Unity 에디터에서 텍스처의 색상과 효과를 조절하고, 원본과 비교한 뒤 PNG로 저장하는 도구입니다. 아바타·오브젝트를 여러 방향에서 검사해 계속 가려지는 폴리곤 후보도 확인할 수 있습니다.
+
+[설치](#설치) · [첫 텍스처 편집](#첫-텍스처-편집) · [가려진 폴리곤 찾기](#가려진-폴리곤-찾기) · [개발·배포](docs/development.md)
+
+![Unity에서 TextureCocktail로 텍스처를 편집하는 화면](docs/media/texture-editor.png)
+
+스크린샷과 GIF는 영어 UI로 촬영한 Unity 에디터의 실제 실행 화면입니다. 아래 도구별 비교 이미지는 TextureCocktail의 실제 셰이더 처리 결과로 만들었으며, 모든 언어 문서에서 영어 라벨이 있는 같은 자료를 사용합니다. [캡처 환경과 예제](docs/media/capture-notes.md)를 확인할 수 있습니다.
+
+## 설치
+
+패키지의 최소 Unity 버전은 **2022.3**이며, 이 저장소의 프로젝트 버전은 **2022.3.22f1**입니다. TextureCocktail은 `luticalab.core` 패키지를 함께 사용합니다.
+
+### VCC에서 설치
+
+1. VRChat Creator Companion에서 **Settings → Packages → Add Repository**를 엽니다.
+2. 아래 저장소 주소를 넣고 **Add**를 누른 뒤 표시된 패키지 정보를 확인해 저장소를 추가합니다.
+3. 사용할 프로젝트의 패키지 관리 화면에서 **TextureCocktail**을 추가합니다. 필요한 Core 의존성도 함께 설치합니다.
+4. Unity에서 해당 프로젝트를 열고 **LuticaLab → TextureCocktail** 메뉴를 확인합니다.
+
+```text
+https://skid-cocktail.luticalab.dev/index.json
+```
+
+[VCC 저장소 추가 안내](https://vcc.docs.vrchat.com/guides/community-repositories/) · [최신 릴리스](https://github.com/LuticaCANARD/TextureCocktail/releases/latest)
+
+<details>
+<summary>ZIP으로 직접 설치하기</summary>
+
+릴리스에서 TextureCocktail ZIP과 해당 릴리스의 Core ZIP을 받습니다. 압축을 풀어 각 `package.json`이 아래 위치에 오도록 프로젝트에 배치한 뒤 Unity를 엽니다.
+
+```text
+YourProject/
+  Packages/
+    luticalab.core/package.json
+    luticalab.texturecocktail/package.json
+```
+
+같은 패키지를 VCC와 수동 복사로 중복 설치하지 마세요. VCC에서 설치한 프로젝트는 VCC의 업데이트 기능을 사용합니다.
+
+</details>
+
+## 첫 텍스처 편집
+
+1. Project 창에서 편집할 텍스처를 선택하고 우클릭 **TextureCocktail → Open with TextureCocktail**을 누릅니다. 창을 먼저 열었다면 **Target Texture / 대상 텍스처**에 텍스처를 드래그합니다.
+2. **Quick Shader Selection / 빠른 셰이더 선택**에서 **Filters/Fast Image Converter**를 고릅니다.
+3. **Brighten**, **High Contrast**, **Vibrant** 등의 프리셋을 누르거나 밝기·대비·채도·감마를 조절합니다. 아래 미리보기에서 결과를 확인합니다.
+4. **Save Texture / 텍스처 저장**을 누르고 `example_edited.png`처럼 새 이름으로 저장합니다. 저장창은 기본적으로 `Assets`와 원본 이름을 제안하므로, 원본을 유지하려면 다른 파일명을 선택하세요.
+5. 저장한 PNG를 사용할 머티리얼의 텍스처 슬롯에 지정합니다.
+
+![색상 설정에 따라 달라지는 TextureCocktail의 실제 미리보기](docs/media/texture-workflow.gif)
+
+창은 **영어·한국어·일본어·중국어(간체)**를 지원합니다. 최초 실행 언어는 운영체제 언어와 관계없이 **영어**입니다. **LuticaLab → Setting → Language**에서 한국어나 **简体中文** 등 원하는 언어로 바꿀 수 있으며, 직접 선택한 언어는 Unity를 다시 열어도 유지됩니다. 메뉴 경로·셰이더 식별자·외부 플러그인 이름은 영어로 표시될 수 있습니다.
+
+### 원본과 결과 비교하기
+
+미리보기 아래 **A/B Test / A/B 테스트**를 누르면 원본과 편집 결과를 함께 볼 수 있습니다. **Side by Side / 나란히 보기**, **Split Slider / 분할 슬라이더**, **Toggle / 토글** 중 비교 방식을 고르세요.
+
+![A/B 테스트의 분할 슬라이더로 원본과 편집 결과 비교](docs/media/ab-comparison.gif)
+
+A/B 창의 After 이미지는 창을 열 당시의 스냅샷입니다. 편집 값을 바꿨다면 메인 창에서 **A/B Test**를 다시 눌러 갱신하세요. 비교용 머티리얼과 Quad를 생성할 수도 있으며, 기본 출력 폴더는 `Assets/TextureCocktailABTest`입니다.
+
+### 일부 영역만 편집하기
+
+미리보기에서 **Enable Polygon Mask / 폴리곤 마스크 사용**을 켜고 점을 세 개 이상 찍은 뒤 첫 점을 클릭하거나 폴리곤 마무리 버튼을 누릅니다. 닫힌 영역에만 효과가 적용됩니다. 꼭짓점이나 폴리곤 안쪽을 드래그해 영역을 조정하고, **폴리곤 초기화**로 지울 수 있습니다.
+
+작은 영역은 **전체화면 편집**에서 확대해 작업하세요. **LuticaLab → TextureCocktail Mesh Preview**에서는 대상 Renderer, 머티리얼 슬롯, 텍스처 속성을 지정해 메시 위의 편집 영역을 확인할 수 있습니다.
+
+## 작업에 맞는 도구 선택
+
+메인 창의 빠른 셰이더 선택에서 다음 도구를 사용할 수 있습니다.
+
+| 하고 싶은 작업 | 선택할 도구 | 시작 방법 |
+| --- | --- | --- |
+| 밝기·대비·채도 조절, 블러·선명화 | **Filters/Fast Image Converter** | 텍스처 지정 → 프리셋 또는 Filter Type 선택 → 값 조절 |
+| 색온도·노출·색감 보정 | **Color/Color Correction** | 프리셋 선택 → 그레이딩 모드와 색상 값 조절 |
+| 색상·채도·명도 변경 | **Color/HSV Adjustment** | HSV 변환과 오프셋 조절 |
+| 텍스처 두 장 합성 | **Effects/Texture Blender** | 베이스와 블렌드 텍스처 지정 → 합성 모드·양 조절 |
+| 픽셀화·하프톤·카툰 효과 | **Effects/Artistic Effects** | 효과 선택 → 해당 효과의 값 조절 |
+| 엣지·색상 특징 추출 | **Analysis/Feature Extractor** | 추출 모드 선택 → 채널·민감도 조절 |
+| 높이 이미지에서 노멀맵 생성 | **Generators/Normal Map Generator** | 텍스처 지정 → 강도·높이 스케일 조절 |
+
+### 도구별 처리 결과 보기
+
+절차적으로 만든 512 × 512 금속 제어판 텍스처와 때 자국 텍스처, 높이 이미지를 사용했습니다. 각 결과는 TextureCocktail의 실제 셰이더로 렌더링했으며, 입력과 출력을 영어 라벨과 함께 비교 이미지로 배치했습니다. 아래 값으로 예제를 재현할 수 있습니다. 생성 과정은 [캡처 환경과 예제](docs/media/capture-notes.md)를 참고하세요.
+
+#### Fast Image Converter — 밝기와 디테일
+
+텍스처를 밝게 하거나 세부 무늬를 부드럽게 또는 선명하게 만듭니다. 예제는 **Brighten** 프리셋(밝기 **0.2**, 대비 **1.1**, 채도 **1.05**, 감마 **1**), **Blur 0.8**, **Sharpen 1.5**를 비교합니다.
+
+![금속 제어판 원본과 Brighten, 블러, 선명화 처리 결과 비교](docs/media/tool-fast-image-converter.png)
+
+#### Color Correction — 따뜻한 색감과 차가운 색감
+
+같은 소품의 따뜻한 버전과 차가운 버전을 만듭니다. 두 예제 모두 **Basic** 그레이딩과 노출 **+0.5**를 사용하며, 색온도는 따뜻한 버전 **+0.9**, 차가운 버전 **−0.9**입니다.
+
+![금속 제어판 원본과 따뜻한 색감 및 차가운 색감 보정 결과 비교](docs/media/tool-color-correction.png)
+
+#### HSV Adjustment — 표면 색상 변경
+
+음영을 유지하면서 도장된 표면의 색상을 바꿉니다. HSV Convert는 **0**이며, HSV Offset **(0.25, 0.1, 0)**과 **(0.5, 0.1, 0)**을 비교합니다.
+
+![금속 제어판 원본과 색상·채도 오프셋을 바꾼 두 결과 비교](docs/media/tool-hsv-adjustment.png)
+
+#### Texture Blender — 때 자국 합성
+
+기본 텍스처에 별도의 때 자국 텍스처를 합성해 소품에 사용감을 더합니다. 예제는 **Multiply**, 합성량 **0.75**, 블렌드 마스크 끄기를 사용합니다.
+
+![제어판 기본 텍스처, 때 자국 텍스처, Multiply 합성 결과 비교](docs/media/tool-texture-blender.png)
+
+#### Artistic Effects — 소품 스타일 변경
+
+스타일 효과에서도 세부 형태가 보이도록 먼저 Color Correction의 **Basic**, 노출 **+1.5**로 입력을 밝게 했습니다. 중심 **(0.5, 0.5)**의 **Pixelate 16**, 점 크기 **10**·각도 **45°**의 **Halftone**, **8**단계·엣지 임계값 **0.15**의 **Cartoon**을 비교합니다.
+
+![밝기를 보정한 제어판과 픽셀화, 하프톤, 카툰 효과 비교](docs/media/tool-artistic-effects.png)
+
+#### Feature Extractor — 엣지 확인
+
+제어판의 윤곽을 추출해 검사하거나 그래픽 효과로 사용합니다. **Sobel**은 민감도 **0.5**, **Canny**는 민감도 **0.8**이며, 둘 다 시안색 엣지와 강도 **1**을 사용합니다.
+
+![제어판 원본과 시안색 Sobel 및 Canny 엣지 추출 결과 비교](docs/media/tool-feature-extractor.png)
+
+#### Normal Map Generator — 표면 요철 만들기
+
+흑백 높이 이미지에서 노멀맵을 생성합니다. 높이 스케일 **1**에서 강도 **2**와 **10**을 비교하면, 강도가 높을수록 높이 변화가 더 뚜렷하게 표현됩니다.
+
+![흑백 높이 입력과 강도 2 및 10으로 생성한 노멀맵 비교](docs/media/tool-normal-map-generator.png)
+
+### 여러 텍스처에 같은 보정 적용하기
+
+**LuticaLab → TextureCocktail Batch Processor**를 열고 셰이더를 지정합니다. Project에서 텍스처들을 선택한 뒤 **Add Selected Textures**로 추가하고, 공통 설정과 **Output Path**를 확인해 **Process All Textures**를 누릅니다.
+
+일괄 처리의 공통 설정은 밝기·대비·채도·감마이며, 지정한 셰이더에 해당 속성이 있을 때 적용됩니다. 기본 출력은 `Assets/ProcessedTextures/<원본이름>_processed.png`입니다. 같은 이름의 결과는 덮어쓸 수 있으므로 작업별 출력 폴더를 지정하세요.
+
+## 가려진 폴리곤 찾기
+
+**X·Y·Z축의 양쪽과 대각선 방향에서 검사한 뒤, 모든 검사 방향에서 가려진 삼각형만 따로 표시**합니다. 한 방향에서라도 보인 면은 후보에서 제외합니다. 실제 Light를 추가할 필요는 없으며, 메시를 삭제하지 않고 정리 여부를 판단할 후보를 보여줍니다.
+
+![XYZ 양방향과 대각선 검사 결과에서 계속 가려진 건물 폴리곤만 표시한 Unity 화면](docs/media/mesh-visibility.png)
+
+1. **Hierarchy**에서 아바타나 오브젝트의 루트를 선택합니다. Project 창의 프리팹 파일 대신 씬에 배치된 오브젝트를 사용하세요.
+2. **LuticaLab → TextureCocktail Mesh Visibility**를 엽니다. Mesh Preview 창의 **Find Hidden Polygons… / 보이지 않는 폴리곤 찾기…**에서도 열 수 있습니다.
+3. **Analysis Mode / 분석 모드**를 기본값인 **All directions (XYZ + diagonals) / 모든 방향 (XYZ + 대각선)**으로 둡니다. **Direction Coverage / 검사 방향 정밀도**는 빠르게 26방향, 기본 균형 98방향, 정밀 386방향입니다. 정밀도를 높이면 기존 검사 방향을 유지하면서 방향을 추가합니다.
+4. **Surface Sampling / 표면 검사 정밀도**를 고릅니다. 기본 균형 모드는 삼각형당 4지점을 검사하며, 빠르게는 1지점, 정밀은 7지점입니다. 필요하면 **다른 씬 메시의 가림도 검사**를 켭니다.
+5. **Analyze Current Pose / 현재 포즈 분석**을 누릅니다. 활성화된 자식 MeshRenderer와 SkinnedMeshRenderer를 현재 포즈로 함께 분석합니다.
+6. **XYZ ray checks / XYZ 광선 검사**에서 **+X, -X, +Y, -Y, +Z, -Z**가 각각 검사되었는지와 방향별로 보인 삼각형 수를 확인합니다. **Show inspected XYZ ray directions / 검사한 XYZ 광선 방향 표시**를 켜면 Scene 뷰에도 광선 방향 화살표가 나타납니다.
+7. **Hidden in all checked directions / 검사한 모든 방향에서 가려짐** 후보만 **보라색**으로 표시됩니다. **X-ray / 투시 표시**로 다른 메시 뒤의 후보도 볼 수 있고, **Select / 선택**으로 해당 오브젝트를 찾을 수 있습니다.
+
+XYZ 검사는 수평으로 한 바퀴 도는 검사에만 한정되지 않습니다. 위·아래를 포함한 여섯 축 방향과 대각선을 함께 검사합니다. 방향 표기는 **모델을 향하는 광선의 진행 방향**입니다. 예를 들어 +Z 광선은 모델의 -Z 쪽에서 들어옵니다.
+
+### 예제: 건물을 360도로 돌려도 가려진 폴리곤만 확인하기
+
+작은 작업실 건물의 **두꺼운 벽 속 기둥·보**와 **출입구로 보이는 내부 상자 면**을 비교합니다. 여러 방향의 결과를 합치므로, 출입구를 통해 한 번이라도 보인 상자 면은 후보에서 제외됩니다. 벽체 안에 계속 가려진 면은 X-ray로 따로 확인할 수 있습니다.
+
+![98방향 검사 결과를 유지하며 작업실 건물 주위를 360도로 돌아 가려진 후보와 XYZ 광선을 확인하는 실제 Unity 시연](docs/media/mesh-visibility.gif)
+
+GIF는 **98방향으로 한 번 분석한 결과를 유지한 채 Scene 뷰를 360도 회전**하는 시연입니다. 확인용 시점만 돌릴 때는 다시 분석하지 않아도 됩니다. 화면에 보이는 면이 바뀌어도 모든 검사 방향에서 가려진 후보 집합은 같습니다.
+
+직접 따라 하려면 [예제 생성기](docs/examples/MeshVisibilityDemo.cs)를 프로젝트의 `Assets/Editor`에 복사하세요. 이름 없는 Untitled 씬이 열려 있다면 먼저 저장한 뒤 **LuticaLab → Examples → Create Mesh Visibility Demo**를 실행합니다. 별도의 모델 다운로드 없이 예제 씬을 만들 수 있습니다. [예제 환경과 재현 순서](docs/media/capture-notes.md#메시-예제-재현)에 필요한 설정을 정리했습니다.
+
+| 모든 방향 결과 | 의미 |
+| --- | --- |
+| Seen in any direction / 어느 방향에서든 보임 | 검사한 방향 중 적어도 하나에서 보인 지점이 있어 후보에서 제외 |
+| 보라색 · Hidden in all checked directions / 검사한 모든 방향에서 가려짐 | 모든 검사 방향에서 가려진 후보. 이 면만 색상으로 표시 |
+| Unresolved / 판정 보류 | 모든 검사 방향에서 가려졌다고 판정하지 못한 면. 후보에서 제외 |
+| Degenerate / 유효하지 않은 면 | 면적이 없는 등 분석에 적합하지 않은 삼각형. 후보에서 제외 |
+
+**‘모든 방향’은 선택한 26·98·386개 검사 방향을 뜻하며, 가능한 모든 시점에서 절대 보이지 않는다는 증명은 아닙니다.** 작은 노출 영역이나 좁은 틈을 놓칠 수 있습니다. 실내에 들어갈 수 있는 건물은 내부 시점에서도 확인하세요. 오브젝트·메시 형상·포즈·블렌드셰이프·가림 메시·분석 설정을 바꾼 뒤에는 다시 분석해야 합니다.
+
+### 특정 카메라나 한 방향만 검사하기
+
+기존 검사는 **Analysis Mode: Single view / 분석 모드: 단일 시점**에서 사용할 수 있습니다. **View Source / 시점 기준**으로 현재 Scene 뷰, 씬의 Camera, 지정 방향을 고릅니다. 지정 방향에는 모델을 향하는 광선의 진행 방향을 입력합니다.
+
+| 단일 시점 색상·분류 | 의미 |
+| --- | --- |
+| 빨강 · Occluded / 가려짐 | 검사한 지점이 다른 면에 가려짐 |
+| 주황 · Back-facing / 뒷면 | 검사 시점의 반대쪽을 향함 |
+| 파랑 · Outside view / 시야 밖 | 지정 카메라의 시야 밖에 있음 |
+| Visible / 보임 | 검사한 지점에서 보이는 부분이 발견됨 |
+| Degenerate / 유효하지 않은 면 | 면적이 없는 등 분석에 적합하지 않은 삼각형 |
+
+단일 시점 결과는 분석 당시의 시점과 포즈에 한정됩니다. 카메라나 Scene 뷰를 옮긴 뒤에는 다시 분석하세요. 건물 뒤에서 가려진 상자도 정면 출입구나 실내에서는 보일 수 있습니다.
+
+두 모드 모두 불투명한 형상을 기준으로 검사하며 투명도, 알파 컷아웃, 머티리얼 컬링, 셰이더 변형, 카메라 레이어, LOD와 렌더 파이프라인 효과를 재현하지 않습니다. 분석과 색상 표시는 원본 메시를 변경하지 않습니다.
+
+## 다른 유틸리티와 문제 해결
+
+- **LuticaLab → Quick Access Toolbar**: 텍스처를 지정하고 프리셋 버튼을 눌러 처리 결과를 저장합니다.
+- **LuticaLab → Texture Optimizer**: 폴더를 **Scan Textures**로 검사한 뒤 권장 설정을 검토합니다. Fix 버튼은 실제 Texture Importer 설정을 변경합니다.
+- **LuticaLab → AI Connector**: 별도로 실행 중인 Ollama 또는 OpenAI 호환 서버를 연결하고 모델을 선택해 프롬프트를 보냅니다. 텍스처 편집 기능 자체에는 AI 서버가 필요하지 않습니다.
+
+| 증상 | 확인할 내용 |
+| --- | --- |
+| LuticaLab 메뉴가 없음 | Core와 TextureCocktail이 모두 설치됐는지, Console에 컴파일 오류가 있는지 확인합니다. |
+| 미리보기가 나오지 않음 | 대상 텍스처와 빠른 셰이더 선택을 확인하고 미리보기 영역을 펼칩니다. |
+| 저장한 텍스처가 오브젝트에 반영되지 않음 | 저장한 PNG를 머티리얼의 텍스처 슬롯에 지정합니다. |
+| A/B 비교가 이전 결과를 보여줌 | 메인 창에서 A/B Test를 다시 열어 스냅샷을 갱신합니다. |
+| 메시 분석 버튼이 비활성화됨 | 분석 대상이 씬 오브젝트인지 확인합니다. 단일 시점 모드에서는 Scene 뷰 또는 Camera가 있는지, 지정 방향이 0이 아닌지도 확인합니다. |
+
+Windows 단축키는 **Ctrl+Alt+T**(메인 창), **Ctrl+Alt+B**(일괄 처리)입니다. macOS에서는 **Cmd+Option+T/B**를 사용합니다.
+
+## 더 알아보기
+
+- [개발·확장·테스트·릴리스 자동화](docs/development.md)
+- [플러그인 작성 가이드 (영어)](Packages/luticalab.texturecocktail/PLUGIN_GUIDE.md)
+- [빠른 이미지 변환 가이드](Packages/luticalab.texturecocktail/FAST_IMAGE_CONVERSION_KR.md) · [English guide](Packages/luticalab.texturecocktail/FAST_IMAGE_CONVERSION.md)
+- [색보정·합성·효과 상세 (한국어·영어)](Packages/luticalab.texturecocktail/NEW_FEATURES.md)
+- [문제 제보](https://github.com/LuticaCANARD/TextureCocktail/issues)
+
+TextureCocktail은 LuticaLab의 SKID-Project 하위 프로젝트입니다.
