@@ -1,12 +1,14 @@
 # TextureCocktail
 
+**한국어** · [English](README.en.md) · [日本語](README.ja.md) · [简体中文](README.zh-CN.md)
+
 Unity 에디터에서 텍스처의 색상과 효과를 조절하고, 원본과 비교한 뒤 PNG로 저장하는 도구입니다. 아바타·오브젝트를 여러 방향에서 검사해 계속 가려지는 폴리곤 후보도 확인할 수 있습니다.
 
 [설치](#설치) · [첫 텍스처 편집](#첫-텍스처-편집) · [가려진 폴리곤 찾기](#가려진-폴리곤-찾기) · [개발·배포](docs/development.md)
 
 ![Unity에서 TextureCocktail로 텍스처를 편집하는 화면](docs/media/texture-editor.png)
 
-이 문서의 이미지와 GIF는 Unity 에디터의 실제 실행 화면입니다. [캡처 환경과 예제](docs/media/capture-notes.md)를 확인할 수 있습니다.
+이미지와 GIF는 영어 UI로 촬영한 Unity 에디터의 실제 실행 화면이며, 모든 언어 문서에서 같은 자료를 사용합니다. [캡처 환경과 예제](docs/media/capture-notes.md)를 확인할 수 있습니다.
 
 ## 설치
 
@@ -51,7 +53,7 @@ YourProject/
 
 ![색상 설정에 따라 달라지는 TextureCocktail의 실제 미리보기](docs/media/texture-workflow.gif)
 
-창의 언어는 **LuticaLab → Setting → Language**에서 바꿀 수 있습니다. 메뉴 경로와 프리셋 이름 등 일부 항목은 영어로 표시됩니다.
+창은 한국어·영어·일본어를 지원하며 **LuticaLab → Setting → Language**에서 바꿀 수 있습니다. 중국어는 README 번역으로 제공합니다. 메뉴 경로와 프리셋 이름 등 일부 항목은 영어로 표시됩니다.
 
 ### 원본과 결과 비교하기
 
@@ -157,9 +159,9 @@ Windows 단축키는 **Ctrl+Alt+T**(메인 창), **Ctrl+Alt+B**(일괄 처리)�
 ## 더 알아보기
 
 - [개발·확장·테스트·릴리스 자동화](docs/development.md)
-- [플러그인 작성 가이드](Packages/luticalab.texturecocktail/PLUGIN_GUIDE.md)
+- [플러그인 작성 가이드 (영어)](Packages/luticalab.texturecocktail/PLUGIN_GUIDE.md)
 - [빠른 이미지 변환 가이드](Packages/luticalab.texturecocktail/FAST_IMAGE_CONVERSION_KR.md) · [English guide](Packages/luticalab.texturecocktail/FAST_IMAGE_CONVERSION.md)
-- [색보정·합성·효과 상세](Packages/luticalab.texturecocktail/NEW_FEATURES.md)
+- [색보정·합성·효과 상세 (한국어·영어)](Packages/luticalab.texturecocktail/NEW_FEATURES.md)
 - [문제 제보](https://github.com/LuticaCANARD/TextureCocktail/issues)
 
 TextureCocktail은 LuticaLab의 SKID-Project 하위 프로젝트입니다.

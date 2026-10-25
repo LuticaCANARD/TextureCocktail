@@ -6,6 +6,19 @@
 
 저장소를 clone한 뒤 Unity Hub에서 저장소 루트를 프로젝트로 엽니다. 프로젝트 버전은 `ProjectSettings/ProjectVersion.txt`를 기준으로 합니다. 변경 사항과 검증 결과를 설명하는 Pull Request로 기여할 수 있습니다.
 
+## README 번역 관리
+
+README 상단의 언어 링크로 문서를 전환합니다. 기본 문서는 한국어이며, 중국어는 간체를 사용합니다.
+
+| 언어 | 문서 |
+| --- | --- |
+| 한국어 | [README.md](../README.md) |
+| English | [README.en.md](../README.en.md) |
+| 日本語 | [README.ja.md](../README.ja.md) |
+| 简体中文 | [README.zh-CN.md](../README.zh-CN.md) |
+
+사용자 기능·설치 방법·주의 사항을 바꿀 때는 네 문서를 함께 갱신합니다. 실제 메뉴·버튼 이름, 파일 경로, 명령은 유지하고 설명과 이미지 대체 텍스트를 번역합니다. 이미지와 GIF는 `docs/media`의 같은 파일을 참조합니다. 제목을 번역하면 목차 앵커도 확인하고, 다른 언어로 된 참고 문서에는 링크 옆에 해당 언어를 표시합니다. README의 언어 선택과 앱 UI의 지원 언어는 별개입니다.
+
 ## 셰이더와 커스텀 편집기 추가
 
 - `Shader`를 만들고, 필요하면 `TextureCocktailContent`를 상속한 편집기를 제공합니다.
