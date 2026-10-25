@@ -297,7 +297,7 @@
             "ab_no_target": "Cannot open A/B test: no target texture is selected.",
 
         "mesh_visibility_title": "Mesh Visibility",
-        "mesh_visibility_intro": "Find triangles hidden from a camera or viewing direction. Results are candidates for inspection; the source mesh stays unchanged.",
+        "mesh_visibility_intro": "Find triangles hidden from a camera or multiple viewing directions. Results are candidates for inspection; the source mesh stays unchanged.",
         "mesh_visibility_analyze": "Analyze Current Pose",
         "mesh_visibility_root": "Target Root",
         "mesh_visibility_use_selection": "Use Selected Object",
@@ -338,7 +338,24 @@
         "mesh_visibility_outside_view": "Outside camera view",
         "mesh_visibility_overlay_unavailable": "The visibility overlay shader is unavailable. Analysis counts are still available.",
         "mesh_visibility_counts": "Visible: {0} / Occluded: {1} / Back-facing: {2} / Outside view: {3} / Degenerate: {4}",
-        "mesh_visibility_open": "Find Hidden Polygons..."
+        "mesh_visibility_open": "Find Hidden Polygons...",
+        "mesh_visibility_mode": "Analysis Mode",
+        "mesh_visibility_all_directions": "All directions (XYZ + diagonals)",
+        "mesh_visibility_single_view": "Single view",
+        "mesh_visibility_direction_quality": "Direction Coverage",
+        "mesh_visibility_direction_fast": "Quick (26 directions)",
+        "mesh_visibility_direction_balanced": "Balanced (98 directions)",
+        "mesh_visibility_direction_detailed": "Detailed (386 directions)",
+        "mesh_visibility_multiview_help": "Checks both signs of X, Y and Z plus diagonal directions. A triangle seen in any checked direction is excluded. These are sampled directions, not proof of invisibility from every possible viewpoint.",
+        "mesh_visibility_multiview_snapshot": "{0} directions / captured pose",
+        "mesh_visibility_multiview_notice": "This result combines all checked directions for the captured pose. Rotating the inspection view does not require reanalysis; rerun after changing geometry, transforms, pose, blockers or analysis settings. Interior viewpoints and narrow openings may reveal additional faces.",
+        "mesh_visibility_multiview_counts": "Seen in any direction: {0} / Hidden in all checked directions: {1} / Unresolved: {2} / Degenerate: {3}",
+        "mesh_visibility_hidden_all": "Hidden in all checked directions",
+        "mesh_visibility_axes": "XYZ ray checks (visible triangles per direction)",
+        "mesh_visibility_axis_checked": "{0}: checked ({1})",
+        "mesh_visibility_axis_missing": "{0}: not checked",
+        "mesh_visibility_show_rays": "Show inspected XYZ ray directions",
+        "mesh_visibility_candidate_only": "Only polygons hidden in every checked direction are highlighted."
     }
 
 }

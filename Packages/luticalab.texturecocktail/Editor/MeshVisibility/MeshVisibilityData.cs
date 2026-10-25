@@ -98,7 +98,12 @@ namespace LuticaLab.TextureCocktail
         internal static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
     }
 
-    public enum MeshVisibilityState { Visible, Occluded, BackFacing, OutsideView, Degenerate }
+    public enum MeshVisibilityState
+    {
+        Visible, Occluded, BackFacing, OutsideView, Degenerate,
+        // Keep existing values stable for saved selections and integrations.
+        HiddenFromAllDirections
+    }
 
     public sealed class MeshVisibilitySurfaceResult
     {
@@ -112,20 +117,55 @@ namespace LuticaLab.TextureCocktail
         }
     }
 
+    /// <summary>One checked viewing direction and the number of target triangles it sees.</summary>
+    public sealed class MeshVisibilityDirectionSummary
+    {
+        public Vector3 Forward { get; }
+        public int VisibleTriangles { get; }
+
+        public MeshVisibilityDirectionSummary(Vector3 forward, int visibleTriangles)
+        {
+            Forward = forward;
+            VisibleTriangles = visibleTriangles;
+        }
+    }
+
     /// <summary>
     /// Sampled visibility candidates for target surfaces only. A triangle is Visible if
-    /// any sample is visible. Occluded/OutsideView are sampled findings, not proof that
-    /// every point of the triangle is invisible. Geometry represents the captured pose.
+    /// any sample in any checked view is visible. HiddenFromAllDirections requires actual
+    /// occlusion and no clipped-out views; it is not proof of continuous invisibility.
+    /// Geometry represents the captured pose. Direction summaries are available for
+    /// multi-view analyses; the original single-view constructor keeps them empty.
     /// </summary>
     public sealed class MeshVisibilityReport
     {
         public IReadOnlyList<MeshVisibilitySurfaceResult> Surfaces { get; }
         public int SamplesTested { get; }
+        public bool IsMultiView { get; }
+        public int DirectionsTested => CheckedDirections.Count;
+        public IReadOnlyList<Vector3> CheckedDirections { get; }
+        public IReadOnlyList<MeshVisibilityDirectionSummary> DirectionSummaries { get; }
 
         public MeshVisibilityReport(IReadOnlyList<MeshVisibilitySurfaceResult> surfaces, int samplesTested)
         {
             Surfaces = surfaces;
             SamplesTested = samplesTested;
+            CheckedDirections = Array.Empty<Vector3>();
+            DirectionSummaries = Array.Empty<MeshVisibilityDirectionSummary>();
+        }
+
+        public MeshVisibilityReport(IReadOnlyList<MeshVisibilitySurfaceResult> surfaces, int samplesTested,
+            IReadOnlyList<Vector3> checkedDirections, IReadOnlyList<MeshVisibilityDirectionSummary> directionSummaries)
+        {
+            if (checkedDirections == null) throw new ArgumentNullException(nameof(checkedDirections));
+            if (directionSummaries == null) throw new ArgumentNullException(nameof(directionSummaries));
+            if (checkedDirections.Count == 0 || checkedDirections.Count != directionSummaries.Count)
+                throw new ArgumentException("Multi-view reports require a summary for every checked direction.");
+            Surfaces = surfaces;
+            SamplesTested = samplesTested;
+            IsMultiView = true;
+            CheckedDirections = checkedDirections;
+            DirectionSummaries = directionSummaries;
         }
     }
 }

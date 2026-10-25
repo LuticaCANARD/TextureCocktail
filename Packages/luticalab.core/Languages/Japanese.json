@@ -300,7 +300,7 @@
         "ab_no_target": "A/Bテストを開けません: 対象テクスチャが選択されていません。",
 
         "mesh_visibility_title": "メッシュ可視性解析",
-        "mesh_visibility_intro": "カメラや指定方向から見えない三角形を調べます。結果は確認用の候補であり、元のメッシュは変更しません。",
+        "mesh_visibility_intro": "カメラや複数の検査方向から見えない三角形を調べます。結果は確認用の候補であり、元のメッシュは変更しません。",
         "mesh_visibility_analyze": "現在のポーズを解析",
         "mesh_visibility_root": "解析対象ルート",
         "mesh_visibility_use_selection": "選択中のオブジェクトを使用",
@@ -341,7 +341,24 @@
         "mesh_visibility_outside_view": "カメラの視野外",
         "mesh_visibility_overlay_unavailable": "色表示用のシェーダーが利用できません。解析件数は確認できます。",
         "mesh_visibility_counts": "可視 {0} / 遮蔽 {1} / 裏面 {2} / 視野外 {3} / 無効な面 {4}",
-        "mesh_visibility_open": "見えないポリゴンを探す..."
+        "mesh_visibility_open": "見えないポリゴンを探す...",
+        "mesh_visibility_mode": "解析モード",
+        "mesh_visibility_all_directions": "全方向（XYZ + 斜め方向）",
+        "mesh_visibility_single_view": "単一視点",
+        "mesh_visibility_direction_quality": "検査方向の密度",
+        "mesh_visibility_direction_fast": "高速（26方向）",
+        "mesh_visibility_direction_balanced": "標準（98方向）",
+        "mesh_visibility_direction_detailed": "詳細（386方向）",
+        "mesh_visibility_multiview_help": "X・Y・Z軸の正負両方向と斜め方向を検査します。検査した方向のいずれかから見えた三角形は候補から除外します。有限個の方向の検査であり、あらゆる視点から見えないことを保証するものではありません。",
+        "mesh_visibility_multiview_snapshot": "{0}方向 / 解析時のポーズ",
+        "mesh_visibility_multiview_notice": "解析時のポーズで検査した全方向を統合した結果です。結果を確認するために視点を回転するだけなら再解析は不要です。メッシュ形状、トランスフォーム、ポーズ、遮蔽物、解析設定を変更した後は再解析してください。内部の視点や狭い隙間からは、さらに見える面がある場合があります。",
+        "mesh_visibility_multiview_counts": "いずれかの方向で可視 {0} / 検査した全方向で遮蔽 {1} / 判定保留 {2} / 無効な面 {3}",
+        "mesh_visibility_hidden_all": "検査した全方向で遮蔽",
+        "mesh_visibility_axes": "XYZレイ検査（方向別の可視三角形数）",
+        "mesh_visibility_axis_checked": "{0}: 検査済み（{1}）",
+        "mesh_visibility_axis_missing": "{0}: 未検査",
+        "mesh_visibility_show_rays": "検査したXYZレイの方向を表示",
+        "mesh_visibility_candidate_only": "検査したすべての方向で隠れていたポリゴンのみを色表示します。"
     }
 
 }
