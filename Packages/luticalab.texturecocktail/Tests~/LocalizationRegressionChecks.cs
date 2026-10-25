@@ -36,7 +36,7 @@ public static class LocalizationRegressionChecks
             Check("imported Chinese catalogue covers English and preserves composite formats", TestChineseCatalogue, ref passed);
             Check("switching all four languages reloads values and preserves missing-key fallback", TestLanguageSwitching, ref passed);
             Check("translated option labels preserve dispatch names, categories and custom plugins", TestOptionLabels, ref passed);
-            Check("saved language survives provider recreation and invalid preferences fall back", TestSavedChoice, ref passed);
+            Check("saved language survives provider recreation and absent or invalid preferences use English", TestSavedChoice, ref passed);
             Check("invalid language selections preserve the active language and preference", TestInvalidSelection, ref passed);
             return passed;
         }
@@ -175,12 +175,14 @@ public static class LocalizationRegressionChecks
             RequireNewProvider(language);
         }
         EditorPrefs.DeleteKey(PreferenceKey);
-        var systemDefault = LanguageDisplayer.GenerateToLuticaLabSupportLanguage(Application.systemLanguage);
-        RequireNewProvider(systemDefault);
+        RequireNewProvider(LuticaLabSupportLanguage.English);
+        Require(!EditorPrefs.HasKey(PreferenceKey), "The first-run English default must not create an explicit language preference.");
         foreach (string invalid in new[] { "NotALanguage", "999", string.Empty })
         {
             EditorPrefs.SetString(PreferenceKey, invalid);
-            RequireNewProvider(systemDefault);
+            RequireNewProvider(LuticaLabSupportLanguage.English);
+            Require(EditorPrefs.GetString(PreferenceKey, string.Empty) == invalid,
+                "Using the English fallback must not overwrite an existing preference.");
         }
     }
 
@@ -189,7 +191,7 @@ public static class LocalizationRegressionChecks
         LanguageDisplayer fresh = ScriptableObject.CreateInstance<LanguageDisplayer>();
         try
         {
-            Require(fresh.NowLanguage == expected, "A new provider must restore a saved choice or fall back to the system language.");
+            Require(fresh.NowLanguage == expected, "A new provider must restore a saved choice or default to English regardless of the system language.");
             Require(fresh.GetTranslatedLanguage("mesh_visibility_title") == (string)Catalogue(expected)["mesh_visibility_title"],
                 "Restoring the language must load its catalogue before the first lookup.");
         }

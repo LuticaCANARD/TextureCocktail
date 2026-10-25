@@ -37,7 +37,8 @@ namespace LuticaLab
         LuticaLabSupportLanguage _lang = LuticaLabSupportLanguage.English;
         private void OnEnable()
         {
-            _lang = GenerateToLuticaLabSupportLanguage(Application.systemLanguage);
+            // Use English for a fresh installation; explicit language choices take precedence.
+            _lang = LuticaLabSupportLanguage.English;
             string saved = EditorPrefs.GetString(LanguagePreferenceKey, string.Empty);
             if (Enum.TryParse(saved, out LuticaLabSupportLanguage preferred)
                 && Enum.IsDefined(typeof(LuticaLabSupportLanguage), preferred))

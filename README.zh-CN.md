@@ -1,8 +1,8 @@
 # TextureCocktail
 
-[한국어](README.md) · [English](README.en.md) · [日本語](README.ja.md) · **简体中文**
+[English](README.md) · [한국어](README.ko.md) · [日本語](README.ja.md) · **简体中文**
 
-本文为简体中文 README。可通过上方链接切换文档语言；截图和 GIF 均来自实际运行的英文界面。
+本文为简体中文 README。可通过上方链接切换文档语言；各语言版本共用带英文标签的截图、GIF 和工具对比图。
 
 TextureCocktail 是一款 Unity 编辑器工具，可调整纹理颜色和效果、与原图对比，并将结果保存为 PNG。它还可以从多个方向检查虚拟形象或场景物体，找出始终被遮挡的多边形候选面。
 
@@ -10,7 +10,7 @@ TextureCocktail 是一款 Unity 编辑器工具，可调整纹理颜色和效果
 
 ![在 Unity 中使用 TextureCocktail 编辑纹理的实际界面](docs/media/texture-editor.png)
 
-本文中的图片和 GIF 均为 Unity 编辑器的实际运行画面。详见[截图环境与示例（韩语）](docs/media/capture-notes.md)。
+截图和 GIF 均为 Unity 编辑器的实际运行画面。下方的工具对比图使用 TextureCocktail 实际渲染的着色器处理结果。详见[截图环境与示例（韩语）](docs/media/capture-notes.md)。
 
 ## 安装
 
@@ -55,7 +55,7 @@ YourProject/
 
 ![TextureCocktail 的实际预览随颜色设置变化](docs/media/texture-workflow.gif)
 
-工具界面支持**英语、韩语、日语和简体中文**。打开 **LuticaLab → Setting → Language** 并选择 **简体中文**，即可切换为中文界面。所选语言会在重启 Unity 后保留。菜单路径、着色器标识符和外部插件名称可能仍以英语显示。文档保留英文按钮名以便对照截图，简体中文界面会显示相应译名（如 **Brighten → 提亮**）。
+工具界面支持**英语、韩语、日语和简体中文**。首次启动时，无论操作系统使用什么语言，界面均默认显示**英语**。打开 **LuticaLab → Setting → Language** 并选择 **简体中文**，即可切换为中文界面。手动选择的语言会在重启 Unity 后保留。菜单路径、着色器标识符和外部插件名称可能仍以英语显示。文档保留英文按钮名以便对照截图，简体中文界面会显示相应译名（如 **Brighten → 提亮**）。
 
 ### 对比原图与结果
 
@@ -84,6 +84,52 @@ A/B 窗口中的 After 图像是打开窗口时的快照。更改编辑参数后
 | 像素化、半色调和卡通效果 | **Effects/Artistic Effects** | 选择效果 → 调整相应参数 |
 | 提取边缘和颜色特征 | **Analysis/Feature Extractor** | 选择提取模式 → 调整通道和灵敏度 |
 | 从高度图生成法线贴图 | **Generators/Normal Map Generator** | 指定纹理 → 调整强度和高度缩放 |
+
+### 查看各工具的处理结果
+
+这些示例使用程序生成的 512 × 512 金属控制面板纹理、污渍纹理和高度图。各结果均由 TextureCocktail 的实际着色器渲染，再将输入与输出排成带英文标签的对比图。可使用下列参数复现示例。生成步骤见[截图环境与示例（韩语）](docs/media/capture-notes.md)。
+
+#### Fast Image Converter — 亮度与细节
+
+提亮纹理、柔化细节或增强轮廓。示例对比 **Brighten** 预设（亮度 **0.2**、对比度 **1.1**、饱和度 **1.05**、伽马 **1**）、**Blur 0.8** 和 **Sharpen 1.5**。
+
+![金属面板原图与提亮、模糊和锐化结果的对比](docs/media/tool-fast-image-converter.png)
+
+#### Color Correction — 暖色与冷色版本
+
+为同一物件制作暖色和冷色版本。两个示例均使用 **Basic** 调色和曝光 **+0.5**；暖色版本的色温为 **+0.9**，冷色版本为 **−0.9**。
+
+![金属面板原图与暖色、冷色校正结果的对比](docs/media/tool-color-correction.png)
+
+#### HSV Adjustment — 更改表面颜色
+
+在保留明暗变化的同时更改涂漆表面的颜色。HSV Convert 为 **0**，示例对比 HSV Offset **(0.25, 0.1, 0)** 和 **(0.5, 0.1, 0)**。
+
+![金属面板原图与两种色相和饱和度偏移结果的对比](docs/media/tool-hsv-adjustment.png)
+
+#### Texture Blender — 叠加污渍
+
+将基础纹理与单独的污渍纹理混合，为物件添加使用痕迹。示例使用 **Multiply**，混合量 **0.75**，并关闭混合遮罩。
+
+![面板基础纹理、污渍纹理和 Multiply 混合结果的对比](docs/media/tool-texture-blender.png)
+
+#### Artistic Effects — 改变物件风格
+
+为使风格化后的细节保持清晰，先使用 Color Correction 的 **Basic** 模式和曝光 **+1.5** 提亮输入。示例对比中心为 **(0.5, 0.5)** 的 **Pixelate 16**、点大小 **10** 且角度 **45°** 的 **Halftone**，以及 **8** 级色阶、边缘阈值 **0.15** 的 **Cartoon**。
+
+![提亮后的面板与像素化、半色调和卡通效果的对比](docs/media/tool-artistic-effects.png)
+
+#### Feature Extractor — 查看边缘
+
+提取面板轮廓，用于检查或图形效果。**Sobel** 的灵敏度为 **0.5**，**Canny** 为 **0.8**；两者均使用青色边缘，强度为 **1**。
+
+![面板原图与青色 Sobel 和 Canny 边缘提取结果的对比](docs/media/tool-feature-extractor.png)
+
+#### Normal Map Generator — 生成表面凹凸
+
+从灰度高度图生成法线贴图。在高度缩放均为 **1** 时，对比强度 **2** 和 **10**；更高的强度会更突出高度变化。
+
+![灰度高度图与强度为 2 和 10 的法线贴图对比](docs/media/tool-normal-map-generator.png)
 
 ### 对多张纹理应用相同调整
 
