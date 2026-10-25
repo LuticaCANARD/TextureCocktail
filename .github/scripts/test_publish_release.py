@@ -24,17 +24,28 @@ class FakeGitHub:
         self.bad_digest = False
         self.draft_requires_listing = False
         self.publish_before_upload = False
+        self.readback_delays = {}
+        self.stale_reads = 0
+        self.stale_release = None
+        self.listing_release = None
 
     def __call__(self, *args):
         self.calls.append(args)
         if args[0] == "api":
             if "--paginate" in args:
-                return self.result(json.dumps([self.release] if self.release else []))
+                return self.result(json.dumps([self.listing_release] if self.listing_release else []))
             if self.publish_before_upload and self.release and len(self.calls) > 1:
                 self.release["draft"] = False
-            if self.release is None or (self.release["draft"] and self.draft_requires_listing):
+            visible = self.release
+            if self.stale_reads:
+                self.stale_reads -= 1
+                visible = self.stale_release
+            self.listing_release = visible
+            if visible is None or (visible["draft"] and self.draft_requires_listing):
                 return self.result('HTTP/2.0 404 Not Found\ncontent-type: application/json\n\n{"message":"Not Found"}', 1, "gh: Not Found (HTTP 404)")
-            return self.result("HTTP/2.0 200 OK\ncontent-type: application/json\n\n" + json.dumps(self.release))
+            return self.result("HTTP/2.0 200 OK\ncontent-type: application/json\n\n" + json.dumps(visible))
+        self.stale_release = copy.deepcopy(self.release)
+        self.stale_reads = self.readback_delays.get(args[1], 0)
         if args[:2] == ("release", "create"):
             self.release = make_release(True)
             return self.result(self.release["html_url"])
@@ -85,8 +96,10 @@ class PublisherTests(unittest.TestCase):
         self.temp.cleanup()
 
     def run_helper(self, fake, command="publish", extra=()):
-        with patch.object(publisher, "gh", fake), patch("sys.stdout", new=io.StringIO()), patch("sys.stderr", self.errors):
-            return publisher.main([command, *self.arguments, *extra])
+        with patch.object(publisher.time, "sleep") as sleeps:
+            self.sleeps = sleeps
+            with patch.object(publisher, "gh", fake), patch("sys.stdout", new=io.StringIO()), patch("sys.stderr", self.errors):
+                return publisher.main([command, *self.arguments, *extra])
 
     def fixtures(self, directory=Path(".")):
         directory.mkdir(parents=True, exist_ok=True)
@@ -231,8 +244,9 @@ class PublisherTests(unittest.TestCase):
         fake = FakeGitHub(make_release(True))
         fake.bad_digest = True
         self.assertEqual(1, self.run_helper(fake))
+        self.assertEqual([1, 2, 4], [call.args[0] for call in self.sleeps.call_args_list])
         self.assertTrue(fake.release["draft"])
-        self.assertFalse(any(call[1] == "edit" for call in fake.mutations()))
+        self.assertEqual(["upload"], [call[1] for call in fake.mutations()])
 
     def test_rechecks_draft_before_upload(self):
         self.fixtures()
@@ -242,6 +256,103 @@ class PublisherTests(unittest.TestCase):
         fake.publish_before_upload = True
         self.assertEqual(0, self.run_helper(fake))
         self.assertEqual([], fake.mutations())
+
+    def test_created_draft_visibility_retries_reads_not_create(self):
+        self.fixtures()
+        fake = FakeGitHub()
+        fake.readback_delays = {"create": 3}
+        self.assertEqual(0, self.run_helper(fake))
+        self.assertEqual([1, 2, 4], [call.args[0] for call in self.sleeps.call_args_list])
+        self.assertEqual(["create", "upload", "upload", "upload", "upload", "edit"],
+                         [call[1] for call in fake.mutations()])
+        self.assertFalse(fake.release["draft"])
+
+    def test_uploaded_asset_visibility_retries_reads_not_uploads(self):
+        self.fixtures()
+        fake = FakeGitHub(make_release(True))
+        fake.readback_delays = {"upload": 2}
+        self.assertEqual(0, self.run_helper(fake))
+        self.assertEqual([1, 2] * 4, [call.args[0] for call in self.sleeps.call_args_list])
+        self.assertEqual(["upload"] * 4 + ["edit"], [call[1] for call in fake.mutations()])
+        self.assertEqual(set(self.names), {asset["name"] for asset in fake.release["assets"]})
+
+    def test_published_state_visibility_retries_reads_not_publish(self):
+        self.fixtures()
+        fake = FakeGitHub(make_release(True))
+        fake.readback_delays = {"edit": 2}
+        self.assertEqual(0, self.run_helper(fake))
+        self.assertEqual([1, 2], [call.args[0] for call in self.sleeps.call_args_list])
+        self.assertEqual(["upload"] * 4 + ["edit"], [call[1] for call in fake.mutations()])
+        self.assertIn("published=true", Path("outputs").read_text())
+
+    def test_public_readback_stops_without_another_state_read_or_write(self):
+        self.fixtures()
+        for operation in ("create", "upload"):
+            with self.subTest(operation=operation):
+                release = self.complete_public()
+                release["draft"] = True
+                fake = FakeGitHub(None if operation == "create" else release)
+                public_reads = []
+                def published_by_someone_else(*args):
+                    if args[0] == "api" and fake.release and not fake.release["draft"]:
+                        public_reads.append(args)
+                        self.assertEqual(1, len(public_reads), "A public release must not be reconsidered as a draft")
+                    result = fake(*args)
+                    if args[:2] == ("release", operation):
+                        if operation == "create":
+                            fake.release["assets"] = self.complete_public()["assets"]
+                        fake.release["draft"] = False
+                    return result
+                self.assertEqual(0, self.run_helper(published_by_someone_else))
+                self.assertEqual([operation], [call[1] for call in fake.mutations()])
+                self.assertEqual(1, len(public_reads))
+                self.sleeps.assert_not_called()
+
+    def test_persistent_readback_delay_is_bounded_without_repeated_writes(self):
+        self.fixtures()
+        for operation in ("create", "upload", "edit"):
+            with self.subTest(operation=operation):
+                fake = FakeGitHub()
+                fake.readback_delays = {operation: 4}
+                self.assertEqual(1, self.run_helper(fake))
+                self.assertEqual([1, 2, 4], [call.args[0] for call in self.sleeps.call_args_list])
+                mutations = [call[1] for call in fake.mutations()]
+                self.assertEqual(1, mutations.count("create"))
+                self.assertEqual({"create": 0, "upload": 1, "edit": 4}[operation], mutations.count("upload"))
+                self.assertEqual(int(operation == "edit"), mutations.count("edit"))
+                self.assertEqual(operation != "edit", fake.release["draft"])
+                self.assertFalse(Path("outputs").exists())
+        self.assertIn("after four metadata reads", self.errors.getvalue())
+
+    def test_post_write_api_errors_fail_immediately_without_retrying_writes(self):
+        self.fixtures()
+        for status in (401, 403, 500, None):
+            with self.subTest(status=status):
+                fake = FakeGitHub()
+                failures = []
+                def failing(*args):
+                    if args[0] == "api" and fake.release is not None:
+                        failures.append(args)
+                        header = f"HTTP/2.0 {status} Error\n\n{{}}" if status else ""
+                        return FakeGitHub.result(header, 1, "request failed")
+                    return fake(*args)
+                self.assertEqual(1, self.run_helper(failing))
+                self.assertEqual(1, len(failures))
+                self.sleeps.assert_not_called()
+                self.assertEqual(["create"], [call[1] for call in fake.mutations()])
+                self.assertTrue(fake.release["draft"])
+
+    def test_changed_release_identity_fails_without_retrying_or_further_writes(self):
+        self.fixtures()
+        fake = FakeGitHub(make_release(True))
+        def changed(*args):
+            if args[0] == "api" and fake.mutations():
+                fake.release["id"] = 101
+            return fake(*args)
+        self.assertEqual(1, self.run_helper(changed))
+        self.sleeps.assert_not_called()
+        self.assertEqual(["upload"], [call[1] for call in fake.mutations()])
+        self.assertTrue(fake.release["draft"])
 
     def test_artifact_directory_and_repository_validation(self):
         self.fixtures(Path("artifacts"))
