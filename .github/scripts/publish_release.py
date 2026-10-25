@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 import zipfile
 
 
@@ -104,6 +105,31 @@ def validate_remote(release, paths, compare_local=False):
                 raise ReleaseError(f"Uploaded digest does not match local artifact: {name}.")
 
 
+def readback(repository, version, operation, release_id=None, paths=None, published=False):
+    """Retry eventual metadata visibility after a write, never the write or API errors."""
+    pending = "Release metadata is missing."
+    for delay in (0, 1, 2, 4):
+        if delay:
+            time.sleep(delay)
+        release = get_release(repository, version)
+        if release is None:
+            pending = "Release metadata is missing."
+            continue
+        if release_id is not None and release["id"] != release_id:
+            raise ReleaseError("Release identity changed during readback; refusing further writes.")
+        try:
+            if paths is not None:
+                validate_remote(release, paths, compare_local=True)
+            if published and release["draft"]:
+                raise ReleaseError("GitHub still reports a draft.")
+        except ReleaseError as error:
+            pending = str(error)
+            continue
+        return release
+    raise ReleaseError(f"{operation} could not be confirmed after four metadata reads: {pending} "
+                       "Inspect the release before retrying.")
+
+
 def zip_manifest(path):
     try:
         with zipfile.ZipFile(path) as archive:
@@ -165,11 +191,12 @@ def execute(args, repository):
         result = gh("release", "create", args.version, "--repo", repository, "--verify-tag", "--draft",
                     "--generate-notes", "--title", f"{args.package_name} {args.version}")
         require_success(result, "Creating draft release")
-        release = get_release(repository, args.version)
-        if release is None:
-            raise ReleaseError("Created draft could not be found; retry after GitHub metadata becomes available.")
+        release = readback(repository, args.version, "Creating draft release")
+        if not release["draft"]:
+            validate_remote(release, paths)
+            return output(args, release, True)
     release_id = release["id"]
-    for path in paths.values():
+    for name, path in paths.items():
         # Recheck before EACH upload: never intentionally clobber public assets, including
         # when a previous failed run's draft was published by someone else in the meantime.
         current = get_release(repository, args.version)
@@ -180,17 +207,16 @@ def execute(args, repository):
             return output(args, current, True)
         require_success(gh("release", "upload", args.version, str(path), "--repo", repository, "--clobber"),
                         "Uploading draft artifact")
-    current = get_release(repository, args.version)
-    if current is None or current["id"] != release_id:
-        raise ReleaseError("Release identity changed after uploading; draft was not published.")
-    validate_remote(current, paths, compare_local=True)
+        current = readback(repository, args.version, "Uploading draft artifact", release_id, {name: path})
+        if not current["draft"]:
+            validate_remote(current, paths)
+            return output(args, current, True)
+    current = readback(repository, args.version, "Uploading draft artifacts", release_id, paths)
     if current["draft"]:
         require_success(gh("release", "edit", args.version, "--repo", repository, "--draft=false", "--latest"),
                         "Publishing verified draft")
-        current = get_release(repository, args.version)
-        if current is None or current["id"] != release_id or current["draft"]:
-            raise ReleaseError("GitHub did not confirm publication; inspect the release before retrying.")
-        validate_remote(current, paths, compare_local=True)
+        current = readback(repository, args.version, "Publishing verified draft", release_id, paths,
+                           published=True)
     return output(args, current, True)
 
 
