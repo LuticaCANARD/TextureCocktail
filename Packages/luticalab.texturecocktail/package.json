@@ -12,9 +12,9 @@
   },
   "url":"https://skid-cocktail.luticalab.dev/index.json",
   "dependencies" : {
-    "luticalab.core": "0.0.2"
+    "luticalab.core": "0.0.3"
   },
   "vpmDependencies": {
-    "luticalab.core": "0.0.2"
+    "luticalab.core": "0.0.3"
   }
 }

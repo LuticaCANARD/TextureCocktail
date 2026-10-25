@@ -15,6 +15,7 @@ public static class TextureCocktailRegressionChecks
 {
     private const string ExplicitShaderName = "Hidden/TextureCocktailTests/ExplicitBinding";
     private const string LegacyShaderName = "Hidden/TextureCocktailTests/TextureCocktailLegacyFixture";
+    private const string PluginShaderName = "Hidden/TextureCocktailTests/texturecocktailpluginfixture";
     private const string ReorderedShaderName = "Hidden/TextureCocktailTests/ReorderedPasses";
     private const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
     private static int _passed;
@@ -35,6 +36,7 @@ public static class TextureCocktailRegressionChecks
             Check("attribute binding uses the declared Content type", TestExplicitBinding);
             Check("asset metadata override retains attributed Content", () => TestAssetOverride(fixtureRoot));
             Check("legacy same-name Content fallback", TestLegacyBinding);
+            Check("plugin fallback preserves namespace discovery and explicit binding priority", TestPluginFallback);
             Check("shader range metadata and missing properties", TestRanges);
             Check("feature modes follow named passes after reordering", TestNamedPasses);
             Check("preview, PNG pixels and active-target restoration", () => TestRenderAndExport(outputDirectory));
@@ -112,6 +114,43 @@ public static class TextureCocktailRegressionChecks
         var content = TextureCocktailShaderRegistry.CreateContent(RequiredShader(LegacyShaderName));
         try { Require(content is TextureCocktailLegacyFixture, "Unattributed legacy Content must still resolve by shader basename."); }
         finally { if (content != null) Object.DestroyImmediate(content); }
+    }
+
+    private static void TestPluginFallback()
+    {
+        TextureCocktailPluginRegistry.Refresh();
+        TextureCocktailShaderRegistry.Refresh();
+        TextureCocktailContent fallback = null;
+        TextureCocktailContent explicitContent = null;
+        try
+        {
+            Type expected = typeof(TextureCocktailRegressionPluginFixtures.TextureCocktailPluginFixture);
+            Require(TextureCocktailPluginRegistry.TypesByName.TryGetValue("texturecocktailpluginfixture", out Type discovered)
+                && discovered == expected,
+                "Plugin discovery must keep case-insensitive class-name matching outside the built-in namespace.");
+            fallback = TextureCocktailShaderRegistry.CreateContent(RequiredShader(PluginShaderName));
+            Require(fallback != null && fallback.GetType() == expected,
+                "A plugin with no ShaderAttribute must resolve through the shared Content factory.");
+            bool metadataPreserved = false;
+            foreach (var info in TextureCocktailPluginRegistry.AllPlugins)
+                if (info.PluginType == expected)
+                    metadataPreserved = info.DisplayName == "Independent plugin display label"
+                        && info.AssemblyName == expected.Assembly.GetName().Name;
+            Require(metadataPreserved,
+                "Plugin display metadata must remain available without replacing the class-name binding key.");
+
+            Require(TextureCocktailPluginRegistry.TypesByName.TryGetValue("ExplicitBinding", out Type nameMatch)
+                && nameMatch == typeof(TextureCocktailRegressionPluginFixtures.ExplicitBinding),
+                "The fixture must supply a competing name-based plugin for the explicitly bound shader.");
+            explicitContent = TextureCocktailShaderRegistry.CreateContent(RequiredShader(ExplicitShaderName));
+            Require(explicitContent is UnrelatedControls,
+                "An explicit ShaderAttribute binding must win over a same-basename plugin.");
+        }
+        finally
+        {
+            if (fallback != null) Object.DestroyImmediate(fallback);
+            if (explicitContent != null) Object.DestroyImmediate(explicitContent);
+        }
     }
 
     private static void TestRanges()
@@ -498,6 +537,24 @@ namespace LuticaLab.TextureCocktail
 {
     // No attribute: this exercises the compatibility lookup for old extensions.
     public sealed class TextureCocktailLegacyFixture : TextureCocktailContent
+    {
+        public override void OnGUI() { }
+        public override void OnShaderValueChanged() { }
+    }
+}
+
+namespace TextureCocktailRegressionPluginFixtures
+{
+    // Plugin metadata is optional and does not replace class-name shader matching.
+    [TextureCocktailPlugin("Independent plugin display label", "Factory fallback regression", "TextureCocktail tests")]
+    public sealed class TextureCocktailPluginFixture : TextureCocktailContent
+    {
+        public override void OnGUI() { }
+        public override void OnShaderValueChanged() { }
+    }
+
+    // Deliberately competes with the separately attributed UnrelatedControls class.
+    public sealed class ExplicitBinding : TextureCocktailContent
     {
         public override void OnGUI() { }
         public override void OnShaderValueChanged() { }

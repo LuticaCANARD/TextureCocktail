@@ -46,7 +46,8 @@ namespace LuticaLab.TextureCocktail
         /// Creates the custom editor associated with a shader. Attribute registration
         /// binds the actual Content type, so its name, namespace and assembly may differ
         /// from the shader name. Asset metadata overrides do not remove that binding.
-        /// When no explicit binding exists, the legacy same-name Content lookup is used.
+        /// When no explicit binding exists, the plugin registry matches the shader's last
+        /// path segment to a Content class name in any loaded assembly or namespace.
         /// </summary>
         /// <returns>
         /// A new, uninitialized Content instance, or null to use the generic property UI.
@@ -60,11 +61,9 @@ namespace LuticaLab.TextureCocktail
             if (!_contentTypes.TryGetValue(shader, out var contentType))
             {
                 string shaderName = shader.name.Substring(shader.name.LastIndexOf('/') + 1);
-                string legacyTypeName = typeof(TextureCocktailContent).Namespace + "." + shaderName;
-                contentType = Type.GetType(legacyTypeName);
-                if (contentType == null)
+                if (!TextureCocktailPluginRegistry.TypesByName.TryGetValue(shaderName, out contentType))
                 {
-                    Debug.LogWarning($"[TextureCocktail] No Content registered for '{shader.name}' and legacy type '{legacyTypeName}' was not found. Using the generic property UI.");
+                    Debug.LogWarning($"[TextureCocktail] No Content registered for '{shader.name}' and no plugin class named '{shaderName}' was found. Using the generic property UI.");
                     return null;
                 }
             }
