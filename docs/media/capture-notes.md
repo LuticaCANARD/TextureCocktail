@@ -9,11 +9,11 @@
 - 패키지: TextureCocktail **0.0.10**, LuticaLab Core **0.0.3**
 - 화면 언어: English. README에서는 필요한 항목에 한국어 이름도 병기합니다.
 - 이미지 예제: 저장소의 [`Assets/rety.png`](../../Assets/rety.png). 내용을 보기 쉽게 원본 좌표 `(0, 500)`에서 `1024 × 1024` 영역을 잘라 `768 × 768`로 축소한 임시 PNG를 사용했습니다. 원본 파일은 변경하지 않았습니다.
-- 메시 예제: Unity Cube 세 개로 만든 임시 씬입니다. 별도의 아바타나 외부 모델이 필요하지 않습니다.
+- 메시 예제: [생성기](../examples/MeshVisibilityDemo.cs)로 만든 티셔츠와 배낭을 착용한 마네킹입니다. 외부 모델이나 텍스처가 필요하지 않습니다. 예제 머티리얼은 **Built-in Render Pipeline의 Standard 셰이더**를 사용합니다.
 
-모든 화면은 실행 중인 Unity의 실제 TextureCocktail 창을 캡처했습니다. 임시 에디터 스크립트로 실제 프리셋 처리 메서드, A/B 슬라이더 값, X-ray 설정을 순서대로 적용한 뒤 `InternalEditorUtility.ReadScreenPixel`로 기록했습니다. GIF는 **자동 진행한 실제 기능 시연**이며 마우스 조작을 녹화한 영상은 아닙니다. UI나 결과 이미지를 다시 그리거나 합성하지 않았습니다.
+모든 화면은 실행 중인 Unity의 실제 TextureCocktail 창을 캡처했습니다. 임시 에디터 스크립트로 실제 프리셋 처리 메서드, A/B 슬라이더 값, Scene 뷰 회전과 X-ray 설정을 적용한 뒤 `InternalEditorUtility.ReadScreenPixel`로 기록했습니다. GIF는 **자동 진행한 실제 기능 시연**이며 마우스 조작을 녹화한 영상은 아닙니다. UI나 결과 이미지를 다시 그리거나 합성하지 않았습니다.
 
-촬영 후 불필요한 창 아래 여백을 잘랐고, GIF는 6 fps와 256색 팔레트로 변환했습니다. GIF의 색상은 팔레트 변환 때문에 PNG나 Unity 원본과 조금 다를 수 있습니다. 임시 캡처 코드와 예제는 제품 패키지에 포함되지 않습니다.
+텍스처 GIF는 6 fps, 메시 GIF는 10 fps이며 256색 팔레트로 변환했습니다. GIF의 색상은 팔레트 변환 때문에 PNG나 Unity 원본과 조금 다를 수 있습니다. 임시 캡처 코드는 제품 패키지에 포함되지 않으며, 마네킹 생성기는 재현용 소스로 별도 제공합니다.
 
 ## 화면별 내용
 
@@ -22,21 +22,31 @@
 | [`texture-editor.png`](texture-editor.png) | Fast Image Converter에서 **Brighten**을 적용한 편집 창. 밝기 0.2, 대비 1.1, 채도 1.05, 감마 1. |
 | [`texture-workflow.gif`](texture-workflow.gif) | **Reset → Brighten → Vibrant → Desaturate → Reset → Brighten** 프리셋에 따라 슬라이더와 미리보기가 바뀌는 모습. |
 | [`ab-comparison.gif`](ab-comparison.gif) | Brighten 결과를 스냅샷으로 열고 **Split Slider**의 위치를 움직여 Before와 After 비교. |
-| [`mesh-visibility.png`](mesh-visibility.png) | **Direction (0, 0, 1)**, **Balanced (4 samples)**로 분석한 결과. 가려짐 후보만 표시하고 X-ray를 켠 화면. |
-| [`mesh-visibility.gif`](mesh-visibility.gif) | 같은 분석 결과에서 **X-ray 끄기 → 켜기 → 끄기**. 앞 패널 뒤의 후보가 투시 표시로 드러나는 모습. |
+| [`mesh-visibility.png`](mesh-visibility.png) | 옷을 입은 마네킹을 **Current Scene View**, **Balanced (4 samples)**로 분석한 결과. 가려짐 후보만 표시하고 X-ray를 켠 화면. |
+| [`mesh-visibility.gif`](mesh-visibility.gif) | X-ray를 켠 뒤 마네킹 주위를 360도 회전하며, 각 시점에서 다시 분석한 가려짐 후보를 확인하는 시연. |
+
+메시 GIF는 135프레임, 13.5초입니다. 처음 1초는 정면에서 X-ray를 끈 모습, 다음 1초는 켠 모습입니다. 4도 간격으로 시점을 돌리는 9초의 회전 중간에 후면에서 X-ray를 끈 화면을 1.5초 유지해 실제 배낭 외형을 보여줍니다. 마지막 1초는 정면에서 X-ray를 끈 모습으로 돌아옵니다. 촬영 스크립트가 시점마다 **Analyze Current Pose**와 같은 분석을 호출했습니다. 제품에 자동 360도 분석 기능이 추가된 것은 아니며, 사용자가 시점을 바꿀 때는 분석 버튼을 다시 눌러야 합니다.
 
 ## 메시 예제 재현
 
-빈 씬에 `Visibility demo` 루트를 만들고 다음 Cube를 자식으로 배치합니다. 회전은 모두 `(0, 0, 0)`입니다.
+1. Built-in Render Pipeline을 사용하는 Unity 프로젝트에 TextureCocktail과 Core를 설치합니다.
+2. [MeshVisibilityDemo.cs](../examples/MeshVisibilityDemo.cs)를 다운로드하거나 저장소에서 복사해 프로젝트의 `Assets/Editor/MeshVisibilityDemo.cs`에 둡니다. `Editor` 폴더가 없다면 만듭니다.
+3. 현재 이름 없는 **Untitled** 씬이 열려 있다면 먼저 저장합니다. 컴파일이 끝나면 **LuticaLab → Examples → Create Mesh Visibility Demo**를 실행합니다.
+4. 새 씬의 **Clothed avatar visibility demo** 루트를 선택하고 **LuticaLab → TextureCocktail Mesh Visibility**를 엽니다.
+5. **View Source: Current Scene View**, **Surface Sampling: Balanced**를 선택합니다. 다른 씬 메시의 가림과 양면 처리는 끕니다.
+6. 마네킹의 정면을 보며 **Analyze Current Pose**를 실행합니다. 후보 표시는 **Occluded**만 켜고 **X-ray**를 전환해 옷 속 몸통과 배낭을 살펴봅니다.
+7. Scene 뷰를 옆과 뒤로 돌리고, 시점을 바꿀 때마다 **Analyze Current Pose**를 다시 실행합니다. 배낭이 보이는 시점의 결과와 정면 결과를 비교합니다.
 
-| 이름 | Position | Scale | 구별용 색 |
-| --- | --- | --- | --- |
-| `01 Front panel` | `(-0.55, 0, 0)` | `(2.0, 2.7, 0.25)` | 청록 |
-| `02 Hidden panel` | `(-0.55, 0, 0.85)` | `(1.5, 2.1, 0.22)` | 황토 |
-| `03 Visible side piece` | `(1.35, -0.4, 0.3)` | `(0.75, 1.8, 0.6)` | 초록 |
+생성기는 기존에 열린 씬을 유지하면서 별도의 씬을 추가하고 활성화합니다. Unity 2022.3에서 이름 없는 씬이 열려 있으면 먼저 저장하라는 안내를 표시하며, 사용자의 씬을 자동으로 저장하거나 닫지 않습니다. 머티리얼과 메시 파일은 `Assets/TextureCocktailVisibilityDemo/Example` 아래 저장하며, 다시 실행하면 `Example 1`처럼 고유한 폴더를 만들어 기존 에셋을 덮어쓰지 않습니다. 예제를 유지하려면 새 씬도 저장하세요. 생성한 오브젝트는 Undo로 되돌릴 수 있지만, 생성된 에셋 폴더는 Undo로 삭제되지 않습니다.
 
-루트를 선택하고 **LuticaLab → TextureCocktail Mesh Visibility**를 엽니다. View Source는 **Direction**, Ray Direction은 **(0, 0, 1)**, Surface Sampling은 **Balanced**로 설정합니다. 다른 씬 메시의 가림과 양면 처리는 끈 채 **Analyze Current Pose**를 실행합니다.
+| 결과 목록 | 확인할 내용 |
+| --- | --- |
+| `01 Body under shirt` | 옷 속 몸통·상완의 가려진 후보. 다른 포즈나 의상에서도 노출되지 않는지 확인할 대상입니다. |
+| `02 Shirt` | 몸통과 상완을 덮는 상의와 배낭 앞쪽 스트랩. |
+| `03 Backpack` | 정면에서는 가려지지만 뒤에서는 보이는 배낭. 한 시점의 결과로 불필요한 메시라고 판단하면 안 되는 예입니다. |
+| `04 Exposed skin` | 머리·목·전완·손 등 노출 부위. |
+| `05 Trousers` / `06 Shoes` | 하체 의상과 신발. |
 
-이 예제의 결과는 **Renderer 3개, 삼각형 36개, Visible 4개, Occluded 2개, Back-facing 30개**입니다. Scene 뷰에서는 결과를 살펴보기 위해 약간 비스듬한 각도를 사용하지만, 분석 기준은 지정한 +Z 방향입니다. **Occluded**만 표시하고 X-ray를 전환하면 뒤 패널의 두 삼각형이 앞 패널을 통해 보입니다. Scene 뷰에서 보이는 각도와 분석한 방향을 구별해 주세요.
+마네킹 정면은 -Z, 배낭이 있는 등은 +Z입니다. GIF에서는 원본 오브젝트를 회전시키지 않고 Scene 뷰를 회전시킵니다. 결과는 각 시점의 샘플링 결과이며, 모든 각도에서 삭제 가능한 면을 합산하거나 확정한 결과가 아닙니다. 예제는 고정 포즈이므로 실제 아바타에서는 애니메이션과 블렌드셰이프도 바꿔 확인하세요.
 
-이 숫자는 예제 형상에 대한 결과이며 실제 아바타의 절감률이나 삭제 가능한 폴리곤 수를 뜻하지 않습니다.
+촬영 검증에서는 실제 카메라 각도가 0°부터 360°까지 기록된 것을 확인했습니다. 이 예제의 `01 Body under shirt`는 촬영한 모든 시점에서 Visible 0개였고, `03 Backpack`은 정면에서 Visible 0개, 후면에서 84개였습니다. 이는 6 Renderer·2,484개 삼각형으로 구성한 고정 포즈 예제의 샘플링 결과이며, 실제 아바타의 삭제 가능 수량을 뜻하지 않습니다.
