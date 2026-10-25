@@ -32,6 +32,16 @@ Rendering and PNG export live in `TexturePreviewRenderer` and `TextureExportUtil
 
 Regression checks are kept in `Packages/luticalab.texturecocktail/Tests~` so fixtures never appear in the normal shader picker. Run `Run-RegressionChecks.ps1` with the Unity Editor executable matching the project version. The runner copies fixtures to a unique temporary Assets folder, runs Unity in batch mode, and removes only that folder afterward.
 
+## Release a new version
+
+Run **Actions > Build Release > Run workflow** on `main`. The default `patch` choice advances `0.0.9` to `0.0.10`; choose `minor` or `major` when needed. No manual version edit or tag creation is required. A higher version already prepared in `package.json` is retained when it meets the selected increment.
+
+The workflow commits the package version and creates its matching tag together. Core keeps its version when its package is unchanged; changed Core content receives a patch bump unless a higher version is already prepared. Both TextureCocktail dependency declarations and the embedded package lock are synchronized. The ZIPs and UnityPackage are built from that tagged commit, uploaded to a draft, and published only after all files are present. A successful release refreshes the VCC listing automatically.
+
+Use **Re-run failed jobs** or **Re-run all jobs** to retry the same release. Its run ID recovers the original version and tag; a published release is validated and left unchanged. Starting a new workflow run requests a new version. If main changes before a new run prepares its version, that run stops without overwriting main; start a fresh run after reviewing the new commit.
+
+Release automation checks run on relevant pull requests. Run them locally with `python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v`.
+
 ## Usable Editor
 
 - Unity 2022.01

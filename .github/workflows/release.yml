@@ -1,102 +1,116 @@
 name: Build Release
 
-on: 
+on:
   workflow_dispatch:
+    inputs:
+      bump:
+        description: Version increment (already prepared higher versions are retained)
+        type: choice
+        required: true
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: read
 
 jobs:
-
-  # Validate Repository Configuration
-  config:
-    runs-on: ubuntu-latest
-    outputs:
-      config_package: ${{ steps.config_package.outputs.configPackage }}
-    steps:
-
-    # Ensure that required repository variable has been created for the Package
-    - name: Validate Package Config
-      id: config_package
-      run: |
-        if [ "${{ vars.PACKAGE_NAME }}" != "" ]; then
-          echo "configPackage=true" >> $GITHUB_OUTPUT;
-        else
-          echo "configPackage=false" >> $GITHUB_OUTPUT;
-        fi
-
-  # Build and release the Package
-  # If the repository is not configured properly, this job will be skipped
   build:
-    needs: config
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    concurrency:
+      group: release-main
+      cancel-in-progress: false
     env:
-      corePath: Packages/${{ vars.PACKAGE_NAME_CORE }}
-      packagePath: Packages/${{ vars.PACKAGE_NAME }}
-    if: needs.config.outputs.config_package == 'true'
+      PACKAGE_NAME: ${{ vars.PACKAGE_NAME }}
+      CORE_NAME: ${{ vars.PACKAGE_NAME_CORE }}
     steps:
+      - name: Checkout main and release history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
-      # Checkout Local Repository
-      - name: Checkout
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
-
-      # Get the Package version based on the package.json file
-      - name: Get Version
-        id: version
-        uses: zoexx/github-action-json-file-properties@b9f36ce6ee6fe2680cd3c32b2c62e22eade7e590
-        with: 
-            file_path: "${{ env.packagePath }}/package.json"
-            prop_path: "version"
-      - name: Get Core Version
-        id: core_version
-        uses: zoexx/github-action-json-file-properties@b9f36ce6ee6fe2680cd3c32b2c62e22eade7e590
-        with: 
-            file_path: "${{ env.corePath }}/package.json"
-            prop_path: "version"
-    
-      # Configure the Environment Variables needed for releasing the Package
-      - name: Set Environment Variables
+      - name: Prepare version commit and tag
+        id: prepare
+        env:
+          BUMP: ${{ inputs.bump }}
+          RELEASE_RUN_ID: ${{ github.run_id }}
+          RELEASE_SOURCE_SHA: ${{ github.sha }}
         run: |
-          echo "zipFile=${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}".zip >> $GITHUB_ENV
-          echo "coreZipFile=${{ vars.PACKAGE_NAME_CORE }}-${{ steps.core_version.outputs.value }}.zip" >> $GITHUB_ENV
-          echo "unityPackage=${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}.unitypackage" >> $GITHUB_ENV
-          echo "version=${{ steps.version.outputs.value }}" >> $GITHUB_ENV
-          echo "corePath=${{ env.corePath }}" >> $GITHUB_ENV
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 .github/scripts/prepare_release.py \
+            --package-name "$PACKAGE_NAME" --core-name "$CORE_NAME" \
+            --bump "$BUMP" --run-id "$RELEASE_RUN_ID" --source-sha "$RELEASE_SOURCE_SHA"
 
-      # Zip the Package for release
-      - name: Create Package Zip
-        working-directory: "${{ env.packagePath }}"
-        run: zip -r "${{ github.workspace }}/${{ env.zipFile }}" .
-      - name: Create Core Package Zip
-        working-directory: "${{ env.corePath }}"
-        run: zip -r "${{ github.workspace }}/${{ env.coreZipFile }}" .
-      
-      # Build a list of .meta files for future use
-      - name: Track Package Meta Files
-        run: find "${{ env.packagePath }}/" -name \*.meta >> metaList
-      - name: Track Core Package Meta Files
-        run: find "${{ env.corePath }}/" -name \*.meta >> metaList
-      
-      # Make a UnityPackage version of the Package for release
+      - name: Set artifact names
+        env:
+          RELEASE_VERSION: ${{ steps.prepare.outputs.version }}
+          RELEASE_CORE_VERSION: ${{ steps.prepare.outputs.core_version }}
+        run: |
+          echo "VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
+          echo "CORE_VERSION=$RELEASE_CORE_VERSION" >> "$GITHUB_ENV"
+          echo "PACKAGE_PATH=Packages/$PACKAGE_NAME" >> "$GITHUB_ENV"
+          echo "CORE_PATH=Packages/$CORE_NAME" >> "$GITHUB_ENV"
+          echo "PACKAGE_ZIP=$PACKAGE_NAME-$RELEASE_VERSION.zip" >> "$GITHUB_ENV"
+          echo "CORE_ZIP=$CORE_NAME-$RELEASE_CORE_VERSION.zip" >> "$GITHUB_ENV"
+          echo "UNITY_PACKAGE=$PACKAGE_NAME-$RELEASE_VERSION.unitypackage" >> "$GITHUB_ENV"
+
+      - name: Check for an already published release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/publish_release.py status \
+            --version "$VERSION" --core-version "$CORE_VERSION" \
+            --package-name "$PACKAGE_NAME" --core-name "$CORE_NAME"
+
+      - name: Create package ZIP
+        if: steps.release.outputs.published != 'true'
+        working-directory: ${{ env.PACKAGE_PATH }}
+        run: zip -r "$GITHUB_WORKSPACE/$PACKAGE_ZIP" .
+
+      - name: Create core ZIP
+        if: steps.release.outputs.published != 'true'
+        working-directory: ${{ env.CORE_PATH }}
+        run: zip -r "$GITHUB_WORKSPACE/$CORE_ZIP" .
+
+      - name: Collect UnityPackage metadata
+        if: steps.release.outputs.published != 'true'
+        run: find "$PACKAGE_PATH/" "$CORE_PATH/" -name '*.meta' -print | sort > metaList
+
       - name: Create UnityPackage
+        if: steps.release.outputs.published != 'true'
         uses: pCYSl5EDgo/create-unitypackage@v1.2.3
         with:
-          package-path: ${{ env.unityPackage }}
+          package-path: ${{ env.UNITY_PACKAGE }}
           include-files: metaList
-      
-      # Make a release tag of the version from the package.json file 
-      - name: Create Tag
-        id: tag_version
-        uses: rickstaa/action-create-tag@88dbf7ff6fe2405f8e8f6c6fdfd78829bc631f83
-        with:
-          tag: "${{ env.version }}"
-      
-      # Publish the Release to GitHub
-      - name: Make Release
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844
-        with:
-          files: |
-            ${{ env.zipFile }}
-            ${{ env.coreZipFile }}
-            ${{ env.unityPackage }}
-            ${{ env.packagePath }}/package.json
-          tag_name: ${{ env.version }}
+
+      - name: Upload draft assets and publish
+        if: steps.release.outputs.published != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/publish_release.py publish \
+            --version "$VERSION" --core-version "$CORE_VERSION" \
+            --package-name "$PACKAGE_NAME" --core-name "$CORE_NAME"
+
+      - name: Release summary
+        env:
+          RELEASE_COMMIT: ${{ steps.prepare.outputs.commit }}
+          RELEASE_REUSED: ${{ steps.prepare.outputs.reused }}
+          ALREADY_PUBLISHED: ${{ steps.release.outputs.published }}
+        run: |
+          {
+            echo "### TextureCocktail $VERSION"
+            echo "- Core: $CORE_VERSION"
+            echo "- Commit: $RELEASE_COMMIT"
+            echo "- Reused this run's version: $RELEASE_REUSED"
+            echo "- Already published before this attempt: $ALREADY_PUBLISHED"
+            echo "- Release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$VERSION"
+          } >> "$GITHUB_STEP_SUMMARY"
