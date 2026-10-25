@@ -25,12 +25,13 @@ namespace LuticaLab.TextureCocktail
         private string _activeColorProperty;
         private string _activeColorLabel;
         
-        private static readonly string[] _modeKeywords = new string[] 
-        { 
-            "",  // Basic
-            "COLOR_GRADING",
-            "SPLIT_TONING"
-        };
+        private static readonly Dictionary<ColorGradingMode, string> GradingKeywords =
+            new Dictionary<ColorGradingMode, string>
+            {
+                { ColorGradingMode.Basic, "" },
+                { ColorGradingMode.ColorGrading, "COLOR_GRADING" },
+                { ColorGradingMode.SplitToning, "SPLIT_TONING" }
+            };
         
         // Presets
         private readonly Dictionary<string, System.Action> _presets = new Dictionary<string, System.Action>();
@@ -109,7 +110,7 @@ namespace LuticaLab.TextureCocktail
                     EditorGUILayout.BeginHorizontal();
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
                     {
-                        baseWindow.CompileShader();
+                        baseWindow.RenderPreview();
                     }
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
                     {
@@ -286,13 +287,13 @@ namespace LuticaLab.TextureCocktail
             if (material.HasProperty("_Gain"))
                 material.SetColor("_Gain", gain);
             
-            baseWindow.CompileShader();
+            baseWindow.RenderPreview();
         }
         
         private void ApplyGradingMode()
         {
             // Clear all mode keywords first
-            foreach (var keyword in _modeKeywords)
+            foreach (var keyword in GradingKeywords.Values)
             {
                 if (!string.IsNullOrEmpty(keyword))
                 {
@@ -301,13 +302,17 @@ namespace LuticaLab.TextureCocktail
             }
             
             // Enable the selected mode keyword
-            string targetKeyword = _modeKeywords[(int)gradingMode];
+            if (!GradingKeywords.TryGetValue(gradingMode, out string targetKeyword))
+            {
+                gradingMode = ColorGradingMode.Basic;
+                targetKeyword = GradingKeywords[gradingMode];
+            }
             if (!string.IsNullOrEmpty(targetKeyword))
             {
                 baseWindow.SetMaterialKeyword(targetKeyword, true);
             }
             
-            baseWindow.CompileShader();
+            baseWindow.RenderPreview();
         }
         
         private Material GetMaterial()

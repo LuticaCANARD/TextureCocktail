@@ -26,16 +26,17 @@ namespace LuticaLab.TextureCocktail
         private bool _showEffectSettings = true;
         private bool _showPreview = true;
         
-        private static readonly string[] _effectKeywords = new string[] 
-        { 
-            "",  // None
-            "PIXELATE",
-            "POSTERIZE",
-            "HALFTONE",
-            "OILPAINT",
-            "EMBOSS",
-            "CARTOON"
-        };
+        private static readonly Dictionary<ArtisticEffect, string> EffectKeywords =
+            new Dictionary<ArtisticEffect, string>
+            {
+                { ArtisticEffect.None, "" },
+                { ArtisticEffect.Pixelate, "PIXELATE" },
+                { ArtisticEffect.Posterize, "POSTERIZE" },
+                { ArtisticEffect.Halftone, "HALFTONE" },
+                { ArtisticEffect.OilPaint, "OILPAINT" },
+                { ArtisticEffect.Emboss, "EMBOSS" },
+                { ArtisticEffect.Cartoon, "CARTOON" }
+            };
         
         public override void Initialize(TextureCocktail baseWindow)
         {
@@ -85,7 +86,7 @@ namespace LuticaLab.TextureCocktail
                     
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_oilpaint"), GUILayout.Height(35)))
                     {
-                        baseWindow.CompileShader();
+                        baseWindow.RenderPreview();
                     }
                 }
                 
@@ -102,7 +103,7 @@ namespace LuticaLab.TextureCocktail
                     {
                         if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
                         {
-                            baseWindow.CompileShader();
+                            baseWindow.RenderPreview();
                         }
                     }
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
@@ -212,7 +213,7 @@ namespace LuticaLab.TextureCocktail
                 // Only auto-compile for effects other than Oil Paint
                 if (currentEffect != ArtisticEffect.OilPaint)
                 {
-                    baseWindow.CompileShader();
+                    baseWindow.RenderPreview();
                 }
             }
         }
@@ -243,7 +244,7 @@ namespace LuticaLab.TextureCocktail
         private void ApplyEffect()
         {
             // Clear all effect keywords first
-            foreach (var keyword in _effectKeywords)
+            foreach (var keyword in EffectKeywords.Values)
             {
                 if (!string.IsNullOrEmpty(keyword))
                 {
@@ -252,13 +253,17 @@ namespace LuticaLab.TextureCocktail
             }
             
             // Enable the selected effect keyword
-            string targetKeyword = _effectKeywords[(int)currentEffect];
+            if (!EffectKeywords.TryGetValue(currentEffect, out string targetKeyword))
+            {
+                currentEffect = ArtisticEffect.None;
+                targetKeyword = EffectKeywords[currentEffect];
+            }
             if (!string.IsNullOrEmpty(targetKeyword))
             {
                 baseWindow.SetMaterialKeyword(targetKeyword, true);
             }
             
-            baseWindow.CompileShader();
+            baseWindow.RenderPreview();
         }
         
         private Material GetMaterial()

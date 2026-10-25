@@ -183,16 +183,12 @@ namespace LuticaLab.TextureCocktail
                 if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_finish"),
                     EditorStyles.toolbarButton, GUILayout.Width(120)))
                 {
-                    if (_source.FinalizeOpenPolygon())
-                    {
-                        _source.CompileShader();
-                    }
+                    _source.FinalizeOpenPolygon();
                 }
                 if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("polygon_reset"),
                     EditorStyles.toolbarButton, GUILayout.Width(120)))
                 {
                     _source.ClearPolygonMask();
-                    _source.CompileShader();
                 }
                 GUILayout.FlexibleSpace();
                 _source.GetPolygonShapeCounts(out int closedCount, out int openCount);

@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -177,32 +176,9 @@ namespace LuticaLab.TextureCocktail
         
         private void ProcessSingleTexture(Texture2D sourceTexture, Material material)
         {
-            // Create render texture
-            RenderTexture rt = new RenderTexture(sourceTexture.width, sourceTexture.height, 0, RenderTextureFormat.ARGB32);
-            Texture2D result = null;
-            RenderTexture previous = RenderTexture.active;
-            try
-            {
-                rt.Create();
-                material.SetTexture("_MainTex", sourceTexture);
-                RenderTexture.active = rt;
-                Graphics.Blit(sourceTexture, rt, material);
-
-                result = new Texture2D(sourceTexture.width, sourceTexture.height, TextureFormat.RGBA32, false);
-                result.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-                result.Apply();
-
-                string fileName = $"{sourceTexture.name}_processed.png";
-                string fullPath = Path.Combine(outputPath, fileName);
-                File.WriteAllBytes(fullPath, result.EncodeToPNG());
-            }
-            finally
-            {
-                RenderTexture.active = previous;
-                if (result != null) Object.DestroyImmediate(result);
-                rt.Release();
-                Object.DestroyImmediate(rt);
-            }
+            string fileName = $"{sourceTexture.name}_processed.png";
+            string fullPath = Path.Combine(outputPath, fileName);
+            TextureExportUtility.SaveMaterialPng(sourceTexture, material, fullPath);
         }
     }
 }

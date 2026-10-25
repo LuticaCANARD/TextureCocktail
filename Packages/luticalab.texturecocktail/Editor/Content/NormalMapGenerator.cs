@@ -55,7 +55,7 @@ namespace LuticaLab.TextureCocktail
                     EditorGUILayout.BeginHorizontal();
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
                     {
-                        baseWindow.CompileShader();
+                        baseWindow.RenderPreview();
                     }
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
                     {

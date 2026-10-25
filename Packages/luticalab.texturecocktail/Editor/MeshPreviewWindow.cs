@@ -270,6 +270,10 @@ namespace LuticaLab.TextureCocktail
             {
                 EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("mesh_preview_renderer_help"), MessageType.Warning);
             }
+            if (GUILayout.Button(MeshVisibilityWindow.Text("mesh_visibility_open", "Find Hidden Polygons...")))
+            {
+                MeshVisibilityWindow.ShowWindowFor(_renderer != null ? _renderer.gameObject : Selection.activeGameObject);
+            }
         }
 
         private void DrawPreviewArea()

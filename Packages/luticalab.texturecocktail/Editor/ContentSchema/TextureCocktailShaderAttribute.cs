@@ -5,6 +5,8 @@ namespace LuticaLab.TextureCocktail
     /// <summary>
     /// Marks a <see cref="TextureCocktailContent"/> subclass as the editor UI for
     /// a specific shader and registers that shader with the TextureCocktail picker.
+    /// The registry uses the attributed type directly; matching the shader's name or
+    /// using the LuticaLab.TextureCocktail namespace is not required.
     ///
     /// Usage:
     /// <code>
