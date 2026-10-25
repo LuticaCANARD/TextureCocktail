@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -20,19 +18,47 @@ namespace LuticaLab.TextureCocktail
         private Texture2D selectedTexture;
         private Vector2 scrollPosition;
         
-        // Quick operation presets
-        private readonly string[] presetNames = new string[]
+        private enum QuickOperation
         {
-            "Brighten",
-            "Darken",
-            "High Contrast",
-            "Desaturate",
-            "Vibrant",
-            "Blur",
-            "Sharpen",
-            "Edge Detect"
+            Brighten,
+            Darken,
+            HighContrast,
+            Desaturate,
+            Vibrant,
+            Blur,
+            Sharpen,
+            EdgeDetect
+        }
+
+        private readonly struct QuickOperationPreset
+        {
+            public readonly QuickOperation Operation;
+            public readonly string DisplayName;
+            public readonly string FileSuffix;
+            public readonly string ShaderName;
+
+            public QuickOperationPreset(QuickOperation operation, string displayName, string fileSuffix, string shaderName)
+            {
+                Operation = operation;
+                DisplayName = displayName;
+                FileSuffix = fileSuffix;
+                ShaderName = shaderName;
+            }
+        }
+
+        // Display text can change without changing dispatch or exported file names.
+        private static readonly QuickOperationPreset[] Presets =
+        {
+            new QuickOperationPreset(QuickOperation.Brighten, "Brighten", "brighten", "Hidden/FastImageConverter"),
+            new QuickOperationPreset(QuickOperation.Darken, "Darken", "darken", "Hidden/FastImageConverter"),
+            new QuickOperationPreset(QuickOperation.HighContrast, "High Contrast", "high_contrast", "Hidden/FastImageConverter"),
+            new QuickOperationPreset(QuickOperation.Desaturate, "Desaturate", "desaturate", "Hidden/FastImageConverter"),
+            new QuickOperationPreset(QuickOperation.Vibrant, "Vibrant", "vibrant", "Hidden/FastImageConverter"),
+            new QuickOperationPreset(QuickOperation.Blur, "Blur", "blur", "Hidden/FastImageConverter"),
+            new QuickOperationPreset(QuickOperation.Sharpen, "Sharpen", "sharpen", "Hidden/FastImageConverter"),
+            new QuickOperationPreset(QuickOperation.EdgeDetect, "Edge Detect", "edge_detect", "Hidden/FeatureExtractor")
         };
-        
+
         private void OnGUI()
         {
             GUILayout.Label("Quick Access Toolbar", EditorStyles.boldLabel);
@@ -70,11 +96,11 @@ namespace LuticaLab.TextureCocktail
                 
                 scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
                 
-                foreach (var presetName in presetNames)
+                foreach (var preset in Presets)
                 {
-                    if (GUILayout.Button(presetName, GUILayout.Height(35)))
+                    if (GUILayout.Button(preset.DisplayName, GUILayout.Height(35)))
                     {
-                        ApplyQuickOperation(presetName);
+                        ApplyQuickOperation(preset);
                     }
                 }
                 
@@ -114,81 +140,47 @@ namespace LuticaLab.TextureCocktail
             EditorGUILayout.EndVertical();
         }
         
-        private void ApplyQuickOperation(string operationName)
+        private void ApplyQuickOperation(QuickOperationPreset preset)
         {
             if (selectedTexture == null)
                 return;
             
             string path = EditorUtility.SaveFilePanel(
-                $"Save {operationName} Texture",
+                $"Save {preset.DisplayName} Texture",
                 "Assets",
-                selectedTexture.name + $"_{operationName.ToLower().Replace(" ", "_")}.png",
+                selectedTexture.name + $"_{preset.FileSuffix}.png",
                 "png"
             );
             
             if (string.IsNullOrEmpty(path))
                 return;
             
-            Shader shader = GetShaderForOperation(operationName);
+            Shader shader = Shader.Find(preset.ShaderName);
             if (shader == null)
             {
                 EditorUtility.DisplayDialog("Error", "Shader not found for operation", "OK");
                 return;
             }
             
-            Material material = new Material(shader);
-            ConfigureMaterialForOperation(material, operationName);
-            
-            // Process
-            RenderTexture rt = new RenderTexture(selectedTexture.width, selectedTexture.height, 0, RenderTextureFormat.ARGB32);
-            rt.Create();
-            
-            material.SetTexture("_MainTex", selectedTexture);
-            RenderTexture.active = rt;
-            Graphics.Blit(selectedTexture, rt, material);
-            
-            Texture2D result = new Texture2D(selectedTexture.width, selectedTexture.height, TextureFormat.RGBA32, false);
-            result.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-            result.Apply();
-            
-            RenderTexture.active = null;
-            rt.Release();
-            
-            // Save
-            System.IO.File.WriteAllBytes(path, result.EncodeToPNG());
-            
-            // Cleanup
-            Object.DestroyImmediate(result);
-            Object.DestroyImmediate(material);
-            
+            Material material = null;
+            try
+            {
+                material = new Material(shader);
+                ConfigureMaterialForOperation(material, preset.Operation);
+                TextureExportUtility.SaveMaterialPng(selectedTexture, material, path);
+            }
+            finally
+            {
+                if (material != null) Object.DestroyImmediate(material);
+            }
+
             AssetDatabase.Refresh();
             
             EditorUtility.DisplayDialog("Success", 
-                $"Texture processed with {operationName} and saved!", "OK");
+                $"Texture processed with {preset.DisplayName} and saved!", "OK");
         }
-        
-        private Shader GetShaderForOperation(string operationName)
-        {
-            switch (operationName)
-            {
-                case "Brighten":
-                case "Darken":
-                case "High Contrast":
-                case "Desaturate":
-                case "Vibrant":
-                case "Blur":
-                case "Sharpen":
-                    return Shader.Find("Hidden/FastImageConverter");
-                    
-                case "Edge Detect":
-                    return Shader.Find("Hidden/FeatureExtractor");
-                    
-                default:
-                    return Shader.Find("Hidden/FastImageConverter");
-            }
-        }
-        
-        private void ConfigureMaterialForOperation(Material material, string operationName)
+
+        private void ConfigureMaterialForOperation(Material material, QuickOperation operation)
         {
             // Set default values first
             if (material.HasProperty("_Brightness"))
@@ -205,9 +197,9 @@ namespace LuticaLab.TextureCocktail
                 material.SetFloat("_SharpAmount", 0f);
             
             // Apply operation-specific settings
-            switch (operationName)
+            switch (operation)
             {
-                case "Brighten":
+                case QuickOperation.Brighten:
                     if (material.HasProperty("_Brightness"))
                         material.SetFloat("_Brightness", 0.2f);
                     if (material.HasProperty("_Contrast"))
@@ -216,7 +208,7 @@ namespace LuticaLab.TextureCocktail
                         material.SetFloat("_Saturation", 1.05f);
                     break;
                     
-                case "Darken":
+                case QuickOperation.Darken:
                     if (material.HasProperty("_Brightness"))
                         material.SetFloat("_Brightness", -0.2f);
                     if (material.HasProperty("_Contrast"))
@@ -225,19 +217,19 @@ namespace LuticaLab.TextureCocktail
                         material.SetFloat("_Saturation", 0.95f);
                     break;
                     
-                case "High Contrast":
+                case QuickOperation.HighContrast:
                     if (material.HasProperty("_Contrast"))
                         material.SetFloat("_Contrast", 1.5f);
                     if (material.HasProperty("_Saturation"))
                         material.SetFloat("_Saturation", 1.2f);
                     break;
                     
-                case "Desaturate":
+                case QuickOperation.Desaturate:
                     if (material.HasProperty("_Saturation"))
                         material.SetFloat("_Saturation", 0f);
                     break;
                     
-                case "Vibrant":
+                case QuickOperation.Vibrant:
                     if (material.HasProperty("_Brightness"))
                         material.SetFloat("_Brightness", 0.1f);
                     if (material.HasProperty("_Contrast"))
@@ -248,19 +240,19 @@ namespace LuticaLab.TextureCocktail
                         material.SetFloat("_Gamma", 0.9f);
                     break;
                     
-                case "Blur":
+                case QuickOperation.Blur:
                     material.EnableKeyword("BLUR_FILTER");
                     if (material.HasProperty("_BlurAmount"))
                         material.SetFloat("_BlurAmount", 0.5f);
                     break;
                     
-                case "Sharpen":
+                case QuickOperation.Sharpen:
                     material.EnableKeyword("SHARPEN_FILTER");
                     if (material.HasProperty("_SharpAmount"))
                         material.SetFloat("_SharpAmount", 1.0f);
                     break;
                     
-                case "Edge Detect":
+                case QuickOperation.EdgeDetect:
                     if (material.HasProperty("_EdgeSensitivity"))
                         material.SetFloat("_EdgeSensitivity", 0.5f);
                     if (material.HasProperty("_FeatureColor"))
@@ -276,14 +268,7 @@ namespace LuticaLab.TextureCocktail
             
             var window = EditorWindow.GetWindow<TextureCocktail>("TextureCocktail");
             window.Show();
-            
-            // Set the texture through reflection
-            var field = typeof(TextureCocktail).GetField("_targetTexture", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (field != null)
-            {
-                field.SetValue(window, selectedTexture);
-            }
+            window.SetTargetTexture(selectedTexture);
         }
     }
 }

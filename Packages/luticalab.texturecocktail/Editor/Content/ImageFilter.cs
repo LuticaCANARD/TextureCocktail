@@ -87,7 +87,7 @@ namespace LuticaLab.TextureCocktail
                         if (EditorGUI.EndChangeCheck())
                         {
                             material.SetVector("_hsvConvertVector", new Vector4(h, s, v, 0));
-                            baseWindow.CompileShader();
+                            baseWindow.RenderPreview();
                         }
                     }
                 }
@@ -119,7 +119,7 @@ namespace LuticaLab.TextureCocktail
                         if (EditorGUI.EndChangeCheck())
                         {
                             material.SetVector("_hsvOffsetVector", new Vector4(h, s, v, 0));
-                            baseWindow.CompileShader();
+                            baseWindow.RenderPreview();
                         }
                     }
                 }
@@ -170,7 +170,7 @@ namespace LuticaLab.TextureCocktail
                     EditorGUILayout.BeginHorizontal();
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
                     {
-                        baseWindow.CompileShader();
+                        baseWindow.RenderPreview();
                     }
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
                     {
@@ -206,7 +206,7 @@ namespace LuticaLab.TextureCocktail
             // Treat hue 0 as the neutral identity, so offset is signed in [-0.5, 0.5].
             float hueOffset = h > 0.5f ? h - 1f : h;
             material.SetVector(propertyName, new Vector4(hueOffset, s - 0.5f, v - 0.5f, 0f));
-            baseWindow.CompileShader();
+            baseWindow.RenderPreview();
         }
 
         private void ApplyPreset(Vector3 convert, Vector3 offset)
@@ -219,15 +219,12 @@ namespace LuticaLab.TextureCocktail
             if (material.HasProperty("_hsvOffsetVector"))
                 material.SetVector("_hsvOffsetVector", new Vector4(offset.x, offset.y, offset.z, 0));
             
-            baseWindow.CompileShader();
+            baseWindow.RenderPreview();
         }
         
         private Material GetMaterial()
         {
-            var type = baseWindow.GetType();
-            var field = type.GetField("_calcMaterial", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(baseWindow) as Material;
+            return baseWindow != null ? baseWindow.CalculationMaterial : null;
         }
         
         public override void OnShaderValueChanged()

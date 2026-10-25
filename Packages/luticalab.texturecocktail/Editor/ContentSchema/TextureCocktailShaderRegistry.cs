@@ -18,6 +18,7 @@ namespace LuticaLab.TextureCocktail
     public static class TextureCocktailShaderRegistry
     {
         private static List<ITextureCocktailShaderPackage> _cached;
+        private static Dictionary<Shader, Type> _contentTypes;
 
         public static IReadOnlyList<ITextureCocktailShaderPackage> All
         {
@@ -41,12 +42,48 @@ namespace LuticaLab.TextureCocktail
 
         public static bool IsRegistered(Shader shader) => FindByShader(shader) != null;
 
+        /// <summary>
+        /// Creates the custom editor associated with a shader. Attribute registration
+        /// binds the actual Content type, so its name, namespace and assembly may differ
+        /// from the shader name. Asset metadata overrides do not remove that binding.
+        /// When no explicit binding exists, the plugin registry matches the shader's last
+        /// path segment to a Content class name in any loaded assembly or namespace.
+        /// </summary>
+        /// <returns>
+        /// A new, uninitialized Content instance, or null to use the generic property UI.
+        /// The caller must Initialize the instance and DestroyImmediate it when finished.
+        /// </returns>
+        public static TextureCocktailContent CreateContent(Shader shader)
+        {
+            if (shader == null) return null;
+            if (_cached == null || _contentTypes == null) Refresh();
+
+            if (!_contentTypes.TryGetValue(shader, out var contentType))
+            {
+                string shaderName = shader.name.Substring(shader.name.LastIndexOf('/') + 1);
+                if (!TextureCocktailPluginRegistry.TypesByName.TryGetValue(shaderName, out contentType))
+                {
+                    Debug.LogWarning($"[TextureCocktail] No Content registered for '{shader.name}' and no plugin class named '{shaderName}' was found. Using the generic property UI.");
+                    return null;
+                }
+            }
+
+            if (!CanCreateContent(contentType))
+            {
+                Debug.LogWarning($"[TextureCocktail] Content type '{contentType.FullName}' must be a concrete, non-generic TextureCocktailContent subclass.");
+                return null;
+            }
+            return (TextureCocktailContent)ScriptableObject.CreateInstance(contentType);
+        }
+
         public static void Refresh()
         {
             var collected = new List<ITextureCocktailShaderPackage>();
+            var contentTypes = new Dictionary<Shader, Type>();
             CollectAssetPackages(collected);
-            CollectAttributeBackedPackages(collected);
+            CollectAttributeBackedPackages(collected, contentTypes);
             collected.Sort(Compare);
+            _contentTypes = contentTypes;
             _cached = collected;
         }
 
@@ -85,7 +122,8 @@ namespace LuticaLab.TextureCocktail
             }
         }
 
-        private static void CollectAttributeBackedPackages(List<ITextureCocktailShaderPackage> sink)
+        private static void CollectAttributeBackedPackages(
+            List<ITextureCocktailShaderPackage> sink, Dictionary<Shader, Type> contentTypes)
         {
             // TypeCache is dramatically faster than scanning every loaded assembly,
             // and Unity keeps it up-to-date across domain reloads.
@@ -104,7 +142,13 @@ namespace LuticaLab.TextureCocktail
                     Debug.LogWarning($"[TextureCocktail] Shader '{attr.ShaderPath}' tagged on '{t.FullName}' could not be found.");
                     continue;
                 }
-                if (FindShaderInList(sink, shader) != null) continue;
+                if (FindShaderInList(sink, shader) != null)
+                {
+                    // Assets override package metadata, but an attributed Content still
+                    // supplies the editor. Keep the first binding for duplicate attributes.
+                    RegisterContentType(contentTypes, shader, t);
+                    continue;
+                }
 
                 var reflected = new ReflectedPackage(shader, attr, t);
                 if (!reflected.IsCompatible(out var reason))
@@ -113,7 +157,22 @@ namespace LuticaLab.TextureCocktail
                     continue;
                 }
                 sink.Add(reflected);
+                RegisterContentType(contentTypes, shader, t);
             }
+        }
+
+        private static void RegisterContentType(Dictionary<Shader, Type> contentTypes, Shader shader, Type type)
+        {
+            if (!contentTypes.ContainsKey(shader) && CanCreateContent(type))
+            {
+                contentTypes.Add(shader, type);
+            }
+        }
+
+        private static bool CanCreateContent(Type type)
+        {
+            return type != null && type.IsSubclassOf(typeof(TextureCocktailContent))
+                && !type.IsAbstract && !type.ContainsGenericParameters;
         }
 
         private static int IndexOfShader(List<ITextureCocktailShaderPackage> list, Shader shader)

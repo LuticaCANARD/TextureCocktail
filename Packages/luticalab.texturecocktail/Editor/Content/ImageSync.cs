@@ -68,7 +68,7 @@ namespace LuticaLab.TextureCocktail
                     {
                         baseWindow.SetMaterialKeyword(key, key == target);
                     }
-                    baseWindow.CompileShader();
+                    baseWindow.RenderPreview();
                 }
 
                 //-----------------

@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -77,14 +75,7 @@ namespace LuticaLab.TextureCocktail
             {
                 var window = EditorWindow.GetWindow<TextureCocktail>("TextureCocktail");
                 window.Show();
-                
-                // Set the texture through reflection
-                var field = typeof(TextureCocktail).GetField("_targetTexture", 
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (field != null)
-                {
-                    field.SetValue(window, texture);
-                }
+                window.SetTargetTexture(texture);
             }
         }
         
@@ -110,6 +101,10 @@ namespace LuticaLab.TextureCocktail
             Material material = command.context as Material;
             if (material != null)
             {
+                if (copiedMaterial != null)
+                {
+                    Object.DestroyImmediate(copiedMaterial);
+                }
                 copiedMaterial = new Material(material);
                 Debug.Log($"Copied shader settings from material: {material.name}");
             }
@@ -159,44 +154,30 @@ namespace LuticaLab.TextureCocktail
             if (string.IsNullOrEmpty(path))
                 return;
             
-            Material material = new Material(shader);
-            
-            // Apply default settings for quick processing
-            if (material.HasProperty("_Brightness"))
-                material.SetFloat("_Brightness", 0f);
-            if (material.HasProperty("_Contrast"))
-                material.SetFloat("_Contrast", 1.2f);
-            if (material.HasProperty("_Saturation"))
-                material.SetFloat("_Saturation", 1.1f);
-            
-            if (enableEdgeDetection && material.HasProperty("_EdgeSensitivity"))
+            Material material = null;
+            try
             {
-                material.SetFloat("_EdgeSensitivity", 0.5f);
+                material = new Material(shader);
+
+                // Apply default settings for quick processing
+                if (material.HasProperty("_Brightness"))
+                    material.SetFloat("_Brightness", 0f);
+                if (material.HasProperty("_Contrast"))
+                    material.SetFloat("_Contrast", 1.2f);
+                if (material.HasProperty("_Saturation"))
+                    material.SetFloat("_Saturation", 1.1f);
+
+                if (enableEdgeDetection && material.HasProperty("_EdgeSensitivity"))
+                {
+                    material.SetFloat("_EdgeSensitivity", 0.5f);
+                }
+
+                TextureExportUtility.SaveMaterialPng(sourceTexture, material, path);
             }
-            
-            // Create render texture
-            RenderTexture rt = new RenderTexture(sourceTexture.width, sourceTexture.height, 0, RenderTextureFormat.ARGB32);
-            rt.Create();
-            
-            // Set main texture and render
-            material.SetTexture("_MainTex", sourceTexture);
-            RenderTexture.active = rt;
-            Graphics.Blit(sourceTexture, rt, material);
-            
-            // Read pixels
-            Texture2D result = new Texture2D(sourceTexture.width, sourceTexture.height, TextureFormat.RGBA32, false);
-            result.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-            result.Apply();
-            
-            RenderTexture.active = null;
-            rt.Release();
-            
-            // Save
-            System.IO.File.WriteAllBytes(path, result.EncodeToPNG());
-            
-            // Cleanup
-            Object.DestroyImmediate(result);
-            Object.DestroyImmediate(material);
+            finally
+            {
+                if (material != null) Object.DestroyImmediate(material);
+            }
             
             AssetDatabase.Refresh();
             Debug.Log($"Processed texture saved to: {path}");

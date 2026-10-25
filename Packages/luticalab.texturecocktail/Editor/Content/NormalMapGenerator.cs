@@ -55,7 +55,7 @@ namespace LuticaLab.TextureCocktail
                     EditorGUILayout.BeginHorizontal();
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
                     {
-                        baseWindow.CompileShader();
+                        baseWindow.RenderPreview();
                     }
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
                     {
@@ -109,9 +109,7 @@ namespace LuticaLab.TextureCocktail
         
         private Material GetMaterial()
         {
-            var materialField = typeof(TextureCocktail).GetField("_calcMaterial", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return materialField?.GetValue(baseWindow) as Material;
+            return baseWindow != null ? baseWindow.CalculationMaterial : null;
         }
         
         public override void OnShaderValueChanged()

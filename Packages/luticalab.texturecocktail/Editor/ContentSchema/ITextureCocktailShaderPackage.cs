@@ -17,8 +17,9 @@ namespace LuticaLab.TextureCocktail
     ///   - Return a non-null <see cref="Shader"/>.
     ///   - Expose at least the shader properties listed in
     ///     <see cref="RequiredProperties"/> (default: "_MainTex").
-    ///   - Be a single-pass image-effect shader compatible with
-    ///     <see cref="UnityEngine.Graphics.Blit(Texture, RenderTexture, Material)"/>.
+    ///   - Be an image-effect shader compatible with Graphics.Blit. The selected
+    ///     PassIndex is used for generic UI; a custom Content's non-negative PassOrder
+    ///     takes precedence. Both single-pass and multi-pass shaders are supported.
     /// </summary>
     public interface ITextureCocktailShaderPackage
     {

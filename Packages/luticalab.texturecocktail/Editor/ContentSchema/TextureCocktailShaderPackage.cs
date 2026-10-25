@@ -12,7 +12,8 @@ namespace LuticaLab.TextureCocktail
     ///
     /// For shaders that DO have a custom content window, prefer
     /// <see cref="TextureCocktailShaderAttribute"/> on the Content class instead —
-    /// the asset takes precedence if both exist.
+    /// the asset's metadata takes precedence if both exist, while the attributed
+    /// Content type continues to provide the editor UI.
     /// </summary>
     [CreateAssetMenu(
         menuName = "LuticaLab/TextureCocktail/Shader Package",

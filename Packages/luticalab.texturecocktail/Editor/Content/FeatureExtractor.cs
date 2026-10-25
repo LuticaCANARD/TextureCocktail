@@ -1,4 +1,3 @@
-using NUnit.Framework.Internal;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -29,8 +28,7 @@ namespace LuticaLab.TextureCocktail
         public override bool UseDefaultLayout { get => false; }
         public override bool ShaderUpdateDefaultAction { get => false; }
         public override string[] DontWantDisplayPropertyName { get => new string[] { "_AnalysisChannel" }; }
-        private int _passOrder = 1;
-        public override int PassOrder { get => _passOrder; }
+        public override int PassOrder => ResolvePassIndex(GetMaterial(), extractionMode);
 
         private FeatureExtractionMode extractionMode = FeatureExtractionMode.EdgeDetection;
         private AnalysisChannel analysisChannel = AnalysisChannel.RGB;
@@ -54,7 +52,16 @@ namespace LuticaLab.TextureCocktail
             if (histogramTexture == null)
             {
                 histogramTexture = new Texture2D(256, 100, TextureFormat.RGBA32, false);
-                histogramTexture.filterMode = (UnityEngine.FilterMode)FilterMode.Point;
+                histogramTexture.filterMode = UnityEngine.FilterMode.Point;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (histogramTexture != null)
+            {
+                Object.DestroyImmediate(histogramTexture);
+                histogramTexture = null;
             }
         }
         
@@ -157,7 +164,7 @@ namespace LuticaLab.TextureCocktail
                     EditorGUILayout.BeginHorizontal();
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
                     {
-                        baseWindow.CompileShader();
+                        baseWindow.RenderPreview();
                         if (extractionMode == FeatureExtractionMode.HistogramEnhance)
                         {
                             CalculateHistogram();
@@ -260,33 +267,46 @@ namespace LuticaLab.TextureCocktail
             EditorGUILayout.HelpBox(LanguageDisplayer.Instance.GetTranslatedLanguage("histogram_help"), MessageType.None);
         }
         
+        /// <summary>
+        /// Resolves a named shader pass. Explicit fallback indices support older copies of
+        /// the shader without pass names; enum declaration order is not part of this contract.
+        /// </summary>
+        internal static int ResolvePassIndex(Material material, FeatureExtractionMode mode)
+        {
+            string passName;
+            int fallbackIndex;
+            switch (mode)
+            {
+                case FeatureExtractionMode.CannyEdge:
+                    passName = "CannyEdge";
+                    fallbackIndex = 1;
+                    break;
+                case FeatureExtractionMode.ColorSegmentation:
+                    passName = "ColorSegmentation";
+                    fallbackIndex = 2;
+                    break;
+                case FeatureExtractionMode.HistogramEnhance:
+                    passName = "HistogramEnhance";
+                    fallbackIndex = 3;
+                    break;
+                case FeatureExtractionMode.EdgeDetection:
+                default:
+                    passName = "EdgeDetection";
+                    fallbackIndex = 0;
+                    break;
+            }
+
+            if (material == null) return fallbackIndex;
+            int namedPass = material.FindPass(passName);
+            if (namedPass >= 0) return namedPass;
+            return fallbackIndex < material.passCount ? fallbackIndex : 0;
+        }
+
         private void ApplyExtractionMode()
         {
-            var material = GetMaterial();
-            if (material == null) return;
-            
-            // Get source and preview textures
-            var sourceTex = GetSourceTexture();
-            var preview = GetPreviewTexture();
-
-            if (sourceTex == null || preview == null)
-            {
-                baseWindow.CompileShader();
-                return;
-            }
-            
-            // Select the correct pass based on extraction mode
-            // Pass 0: Edge Detection (Sobel)
-            // Pass 1: Canny Edge
-            // Pass 2: Color Segmentation
-            // Pass 3: Histogram Enhancement
-            int pass = (int)extractionMode;
-            _passOrder = pass;
-            // Render using the specific pass
-            RenderTexture.active = preview;
-            Graphics.Blit(sourceTex, preview, material, pass);
-            RenderTexture.active = null;
-
+            if (GetMaterial() == null) return;
+            // The host owns rendering, masks, resource lifetimes and preview notifications.
+            baseWindow.RenderPreview();
         }
 
         private void UpdateAnalysisChannel()
@@ -299,31 +319,17 @@ namespace LuticaLab.TextureCocktail
                 material.SetInt("_AnalysisChannel", (int)analysisChannel);
             }
             
-            baseWindow.CompileShader();
+            baseWindow.RenderPreview();
         }
         
         private Material GetMaterial()
         {
-            var type = baseWindow.GetType();
-            var field = type.GetField("_calcMaterial", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(baseWindow) as Material;
+            return baseWindow != null ? baseWindow.CalculationMaterial : null;
         }
         
         private RenderTexture GetPreviewTexture()
         {
-            var type = baseWindow.GetType();
-            var field = type.GetField("_preview", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(baseWindow) as RenderTexture;
-        }
-        
-        private Texture GetSourceTexture()
-        {
-            var type = baseWindow.GetType();
-            var field = type.GetField("_targetTexture", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(baseWindow) as Texture;
+            return baseWindow != null ? baseWindow.PreviewTexture : null;
         }
         
         private void CalculateHistogram()
@@ -337,43 +343,56 @@ namespace LuticaLab.TextureCocktail
             var previewTex = GetPreviewTexture();
             if (previewTex == null) return;
             
-            // Read pixels from preview texture
-            RenderTexture.active = previewTex;
-            Texture2D readTex = new Texture2D(previewTex.width, previewTex.height, TextureFormat.RGBA32, false);
-            readTex.ReadPixels(new Rect(0, 0, previewTex.width, previewTex.height), 0, 0);
-            readTex.Apply();
-            RenderTexture.active = null;
-            
-            Color[] pixels = readTex.GetPixels();
-            
-            // Calculate histogram based on analysis channel
-            foreach (var pixel in pixels)
+            Texture2D readTex = null;
+            try
             {
-                float value = 0;
-                switch (analysisChannel)
+                RenderTexture previous = RenderTexture.active;
+                try
                 {
-                    case AnalysisChannel.RGB:
-                        value = (pixel.r + pixel.g + pixel.b) / 3.0f;
-                        break;
-                    case AnalysisChannel.Red:
-                        value = pixel.r;
-                        break;
-                    case AnalysisChannel.Green:
-                        value = pixel.g;
-                        break;
-                    case AnalysisChannel.Blue:
-                        value = pixel.b;
-                        break;
-                    case AnalysisChannel.Luminance:
-                        value = 0.299f * pixel.r + 0.587f * pixel.g + 0.114f * pixel.b;
-                        break;
+                    RenderTexture.active = previewTex;
+                    readTex = new Texture2D(previewTex.width, previewTex.height, TextureFormat.RGBA32, false);
+                    readTex.ReadPixels(new Rect(0, 0, previewTex.width, previewTex.height), 0, 0);
+                    readTex.Apply();
                 }
-                
-                int bin = Mathf.Clamp(Mathf.FloorToInt(value * 255), 0, 255);
-                histogramData[bin]++;
+                finally
+                {
+                    RenderTexture.active = previous;
+                }
+
+                Color[] pixels = readTex.GetPixels();
+                foreach (var pixel in pixels)
+                {
+                    float value = 0;
+                    switch (analysisChannel)
+                    {
+                        case AnalysisChannel.RGB:
+                            value = (pixel.r + pixel.g + pixel.b) / 3.0f;
+                            break;
+                        case AnalysisChannel.Red:
+                            value = pixel.r;
+                            break;
+                        case AnalysisChannel.Green:
+                            value = pixel.g;
+                            break;
+                        case AnalysisChannel.Blue:
+                            value = pixel.b;
+                            break;
+                        case AnalysisChannel.Luminance:
+                            value = 0.299f * pixel.r + 0.587f * pixel.g + 0.114f * pixel.b;
+                            break;
+                    }
+
+                    int bin = Mathf.Clamp(Mathf.FloorToInt(value * 255), 0, 255);
+                    histogramData[bin]++;
+                }
             }
-            
-            Object.DestroyImmediate(readTex);
+            finally
+            {
+                if (readTex != null)
+                {
+                    Object.DestroyImmediate(readTex);
+                }
+            }
             
             // Update histogram texture
             UpdateHistogramTexture();

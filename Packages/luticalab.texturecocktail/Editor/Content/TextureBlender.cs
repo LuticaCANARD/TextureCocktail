@@ -34,21 +34,22 @@ namespace LuticaLab.TextureCocktail
         private bool _showPreview = true;
         private bool _useMask = false;
         
-        private static readonly string[] _blendKeywords = new string[] 
-        { 
-            "_BLENDMODE_NORMAL",
-            "_BLENDMODE_MULTIPLY",
-            "_BLENDMODE_SCREEN",
-            "_BLENDMODE_OVERLAY",
-            "_BLENDMODE_SOFTLIGHT",
-            "_BLENDMODE_HARDLIGHT",
-            "_BLENDMODE_COLORDODGE",
-            "_BLENDMODE_COLORBURN",
-            "_BLENDMODE_DARKEN",
-            "_BLENDMODE_LIGHTEN",
-            "_BLENDMODE_DIFFERENCE",
-            "_BLENDMODE_EXCLUSION"
-        };
+        private static readonly Dictionary<BlendMode, string> BlendKeywords =
+            new Dictionary<BlendMode, string>
+            {
+                { BlendMode.Normal, "_BLENDMODE_NORMAL" },
+                { BlendMode.Multiply, "_BLENDMODE_MULTIPLY" },
+                { BlendMode.Screen, "_BLENDMODE_SCREEN" },
+                { BlendMode.Overlay, "_BLENDMODE_OVERLAY" },
+                { BlendMode.SoftLight, "_BLENDMODE_SOFTLIGHT" },
+                { BlendMode.HardLight, "_BLENDMODE_HARDLIGHT" },
+                { BlendMode.ColorDodge, "_BLENDMODE_COLORDODGE" },
+                { BlendMode.ColorBurn, "_BLENDMODE_COLORBURN" },
+                { BlendMode.Darken, "_BLENDMODE_DARKEN" },
+                { BlendMode.Lighten, "_BLENDMODE_LIGHTEN" },
+                { BlendMode.Difference, "_BLENDMODE_DIFFERENCE" },
+                { BlendMode.Exclusion, "_BLENDMODE_EXCLUSION" }
+            };
         
         public override void Initialize(TextureCocktail baseWindow)
         {
@@ -110,7 +111,7 @@ namespace LuticaLab.TextureCocktail
                         if (material != null && material.HasProperty("_UseMask"))
                         {
                             material.SetFloat("_UseMask", _useMask ? 1.0f : 0.0f);
-                            baseWindow.CompileShader();
+                            baseWindow.RenderPreview();
                         }
                     }
                     
@@ -132,7 +133,7 @@ namespace LuticaLab.TextureCocktail
                     EditorGUILayout.BeginHorizontal();
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("apply_quick"), GUILayout.Height(30)))
                     {
-                        baseWindow.CompileShader();
+                        baseWindow.RenderPreview();
                     }
                     if (GUILayout.Button(LanguageDisplayer.Instance.GetTranslatedLanguage("save_texture"), GUILayout.Height(30)))
                     {
@@ -184,24 +185,25 @@ namespace LuticaLab.TextureCocktail
         private void ApplyBlendMode()
         {
             // Clear all blend mode keywords first
-            foreach (var keyword in _blendKeywords)
+            foreach (var keyword in BlendKeywords.Values)
             {
                 baseWindow.SetMaterialKeyword(keyword, false);
             }
             
             // Enable the selected blend mode keyword
-            string targetKeyword = _blendKeywords[(int)blendMode];
+            if (!BlendKeywords.TryGetValue(blendMode, out string targetKeyword))
+            {
+                blendMode = BlendMode.Normal;
+                targetKeyword = BlendKeywords[blendMode];
+            }
             baseWindow.SetMaterialKeyword(targetKeyword, true);
             
-            baseWindow.CompileShader();
+            baseWindow.RenderPreview();
         }
         
         private Material GetMaterial()
         {
-            var type = baseWindow.GetType();
-            var field = type.GetField("_calcMaterial", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(baseWindow) as Material;
+            return baseWindow != null ? baseWindow.CalculationMaterial : null;
         }
         
         public override void OnShaderValueChanged()

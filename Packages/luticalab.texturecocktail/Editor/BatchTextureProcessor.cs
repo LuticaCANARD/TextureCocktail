@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -140,30 +139,35 @@ namespace LuticaLab.TextureCocktail
             }
             
             processing = true;
-            Material material = new Material(selectedShader);
-            
-            // Set common parameters if shader has them
-            if (material.HasProperty("_Brightness"))
-                material.SetFloat("_Brightness", brightness);
-            if (material.HasProperty("_Contrast"))
-                material.SetFloat("_Contrast", contrast);
-            if (material.HasProperty("_Saturation"))
-                material.SetFloat("_Saturation", saturation);
-            if (material.HasProperty("_Gamma"))
-                material.SetFloat("_Gamma", gamma);
-            
-            for (int i = 0; i < textures.Count; i++)
+            Material material = null;
+            try
             {
-                progress = (float)i / textures.Count;
+                material = new Material(selectedShader);
+                // Set common parameters if shader has them
+                if (material.HasProperty("_Brightness"))
+                    material.SetFloat("_Brightness", brightness);
+                if (material.HasProperty("_Contrast"))
+                    material.SetFloat("_Contrast", contrast);
+                if (material.HasProperty("_Saturation"))
+                    material.SetFloat("_Saturation", saturation);
+                if (material.HasProperty("_Gamma"))
+                    material.SetFloat("_Gamma", gamma);
                 
-                Texture2D texture = textures[i];
-                if (texture == null) continue;
-                
-                ProcessSingleTexture(texture, material);
+                for (int i = 0; i < textures.Count; i++)
+                {
+                    progress = (float)i / textures.Count;
+                    Texture2D texture = textures[i];
+                    if (texture == null) continue;
+                    ProcessSingleTexture(texture, material);
+                }
             }
-            
+            finally
+            {
+                if (material != null) Object.DestroyImmediate(material);
+                processing = false;
+            }
+
             progress = 1f;
-            processing = false;
             
             AssetDatabase.Refresh();
             EditorUtility.DisplayDialog("Batch Processing Complete", 
@@ -172,32 +176,9 @@ namespace LuticaLab.TextureCocktail
         
         private void ProcessSingleTexture(Texture2D sourceTexture, Material material)
         {
-            // Create render texture
-            RenderTexture rt = new RenderTexture(sourceTexture.width, sourceTexture.height, 0, RenderTextureFormat.ARGB32);
-            rt.Create();
-            
-            // Set main texture
-            material.SetTexture("_MainTex", sourceTexture);
-            
-            // Render
-            RenderTexture.active = rt;
-            Graphics.Blit(sourceTexture, rt, material);
-            
-            // Read pixels
-            Texture2D result = new Texture2D(sourceTexture.width, sourceTexture.height, TextureFormat.RGBA32, false);
-            result.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-            result.Apply();
-            
-            RenderTexture.active = null;
-            rt.Release();
-            
-            // Save
             string fileName = $"{sourceTexture.name}_processed.png";
             string fullPath = Path.Combine(outputPath, fileName);
-            File.WriteAllBytes(fullPath, result.EncodeToPNG());
-            
-            // Cleanup
-            Object.DestroyImmediate(result);
+            TextureExportUtility.SaveMaterialPng(sourceTexture, material, fullPath);
         }
     }
 }
