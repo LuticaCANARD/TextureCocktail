@@ -1,5 +1,7 @@
 # New Shader Features - 새로운 셰이더 기능
 
+Shortcuts below use Windows notation. On macOS, use Cmd+Option instead of Ctrl+Alt.
+
 Based on the FastImageConverter and FeatureExtractor shaders, three additional powerful features have been implemented.
 
 FastImageConverter와 FeatureExtractor 셰이더를 참고하여 3가지 강력한 기능이 추가되었습니다.
@@ -40,7 +42,7 @@ Professional color correction and grading tool for cinematic looks.
 
 ### Usage Example (사용 예):
 ```
-1. Open TextureCocktail (Alt+T) / TextureCocktail 열기
+1. Open TextureCocktail (Ctrl+Alt+T) / TextureCocktail 열기
 2. Select Hidden/ColorCorrection shader / 셰이더 선택
 3. Choose a preset (e.g., "Cinematic") / 프리셋 선택
 4. Fine-tune parameters / 파라미터 미세 조정

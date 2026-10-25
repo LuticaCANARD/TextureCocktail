@@ -1,5 +1,7 @@
 # Fast 2D Texture Conversion and Image Transformation
 
+Shortcuts below use Windows notation. On macOS, use Cmd+Option instead of Ctrl+Alt.
+
 This feature adds high-speed image processing and feature extraction capabilities to Texture Cocktail, enabling intuitive real-time texture editing within Unity.
 
 ## Features
@@ -35,7 +37,7 @@ A shader-based image converter with real-time preview and quick presets.
   - Sharpen: Edge enhancement filter
 
 **Usage:**
-1. Open TextureCocktail window (Alt+T)
+1. Open TextureCocktail window (Ctrl+Alt+T)
 2. Select `Hidden/FastImageConverter` shader
 3. Select target texture
 4. Choose a quick preset or adjust parameters manually
@@ -60,7 +62,7 @@ Advanced feature extraction with multiple analysis modes.
 - Adjustable sensitivity and thresholds
 
 **Usage:**
-1. Open TextureCocktail window (Alt+T)
+1. Open TextureCocktail window (Ctrl+Alt+T)
 2. Select `Hidden/FeatureExtractor` shader
 3. Select target texture
 4. Choose extraction mode
@@ -79,7 +81,7 @@ Process multiple textures with the same shader settings.
 - Automatic file naming
 
 **Usage:**
-1. Open Batch Processor (Alt+B or LuticaLab/TextureCocktail Batch Processor)
+1. Open Batch Processor (Ctrl+Alt+B or LuticaLab/TextureCocktail Batch Processor)
 2. Select shader to apply
 3. Adjust common parameters
 4. Add textures to process
@@ -105,8 +107,8 @@ Floating toolbar for instant access to common operations.
 ### 5. Keyboard Shortcuts
 
 **Global Shortcuts:**
-- `Alt+T`: Open TextureCocktail main window
-- `Alt+B`: Open Batch Processor
+- `Ctrl+Alt+T`: Open TextureCocktail main window
+- `Ctrl+Alt+B`: Open Batch Processor
 
 **Context Menu (Right-click on texture in Project window):**
 - TextureCocktail/Open with TextureCocktail
@@ -163,13 +165,14 @@ Language files are located in:
 
 ## Examples
 
-### Example 1: Quick Brighten
-1. Select texture in Project window
-2. Right-click → TextureCocktail → Quick Convert with Fast Converter
-3. Image is automatically brightened and saved
+### Example 1: Quick Contrast and Saturation Adjustment
+1. Select a texture in the Project window.
+2. Right-click → TextureCocktail → Quick Convert with Fast Converter.
+3. Choose the PNG location and filename in the save dialog.
+4. The result is saved with brightness 0, contrast 1.2, and saturation 1.1.
 
 ### Example 2: Extract Edges
-1. Open TextureCocktail (Alt+T)
+1. Open TextureCocktail (Ctrl+Alt+T)
 2. Select FeatureExtractor shader
 3. Select your texture
 4. Choose "Edge Detection" mode
@@ -177,7 +180,7 @@ Language files are located in:
 6. Save result
 
 ### Example 3: Batch Process
-1. Open Batch Processor (Alt+B)
+1. Open Batch Processor (Ctrl+Alt+B)
 2. Select FastImageConverter shader
 3. Set brightness to 0.2, contrast to 1.2
 4. Add multiple textures
@@ -196,21 +199,20 @@ Language files are located in:
 ## Image Viewer Window
 
 ### Overview
-Click on any preview image to open it in a dedicated viewer window for detailed inspection.
+Use **Edit Fullscreen** below the preview to inspect the edited result in a larger window. The **View** button beside the target texture opens the original image.
 
 ### Features
-- **Click-to-View**: Click preview images to open full-size viewer
+- **Edit Fullscreen**: Inspect the edited result and adjust polygon masks in a separate window
 - **Fit to Window**: Auto-scales images to fit the window
 - **Zoom Controls**: 10% to 400% zoom with slider and +/- buttons
-- **Pan & Navigate**: Scroll and drag to explore large images
+- **Navigate**: Scroll to explore zoomed images
 - **Quick Access**: "View" button next to target texture field
 
 ### Usage
-1. Hover over any preview image to see "Click to view full size" hint
-2. Click the preview to open viewer window
-3. Toggle "Fit to Window" or use zoom controls
-4. Click and drag to pan when zoomed in
-5. View original texture using "View" button
+1. Click **Edit Fullscreen** below the preview to open the edited result.
+2. Turn off **Fit to Window** to use the zoom slider and +/- buttons.
+3. Scroll to explore the zoomed image. Clicking and dragging on the image edits polygon masks.
+4. To view the original, click **View** beside the target texture in the main window.
 
 ### Keyboard Controls
 - Use zoom slider or +/- buttons to adjust zoom level
