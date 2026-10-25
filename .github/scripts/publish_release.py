@@ -24,7 +24,7 @@ def require_success(result, operation):
         # Do not echo subprocess output: authentication diagnostics may contain credentials.
         status = re.search(r"\bHTTP (\d{3})\b", result.stderr or "")
         detail = " (HTTP " + status.group(1) + ")" if status else ""
-        raise ReleaseError(operation + " failed" + detail + "; existing releases were not published by this step.")
+        raise ReleaseError(operation + " failed" + detail + "; inspect release state before retrying.")
 
 
 def get_release(repository, version):
