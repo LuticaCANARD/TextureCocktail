@@ -27,7 +27,8 @@
 | `TextureExportUtility` | PNG 인코딩과 저장 |
 | `PolygonMaskEditor` | 폴리곤 상호작용과 마스크 텍스처 수명 관리. 명령이 소유 창에 변경을 알림 |
 | `MeshVisibilitySnapshot` | 현재 포즈의 형상을 캡처 |
-| `MeshVisibilityAnalyzer` | 삼각형 가시성 분류 |
+| `MeshVisibilityDirections` | ±XYZ와 대각선을 포함하는 26·98·386개 중첩 검사 방향 |
+| `MeshVisibilityAnalyzer` | 단일 시점 분류 및 여러 방향의 가시성 합산. 한 방향에서라도 보인 면은 후보에서 제외 |
 | `MeshVisibilityOverlay` / `MeshVisibilityWindow` | Scene 뷰 후보 표시와 분석 UI |
 
 ## 회귀 검사

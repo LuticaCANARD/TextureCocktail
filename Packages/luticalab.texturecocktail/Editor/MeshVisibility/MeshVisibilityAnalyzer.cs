@@ -28,9 +28,33 @@ namespace LuticaLab.TextureCocktail
         public static MeshVisibilityReport Analyze(IReadOnlyList<MeshVisibilitySurface> surfaces,
             MeshVisibilityView view, bool twoSided, int samplesPerTriangle, Func<float, bool> cancel = null)
         {
-            if (surfaces == null) throw new ArgumentNullException(nameof(surfaces));
-            if (samplesPerTriangle != 1 && samplesPerTriangle != 4 && samplesPerTriangle != 7)
-                throw new ArgumentOutOfRangeException(nameof(samplesPerTriangle), "Choose 1, 4 or 7 samples.");
+            ValidateView(ref view);
+            return AnalyzeViews(surfaces, new[] { view }, twoSided, samplesPerTriangle, null, cancel);
+        }
+
+        /// <summary>
+        /// Fits orthographic views in a nested set of directions around the bounds.
+        /// Include targets AND blockers in bounds. A triangle is HiddenFromAllDirections
+        /// only when no checked view sees it, at least one view establishes occlusion,
+        /// and no view clips it out. This finite sample is not a proof for every direction.
+        /// The captured geometry and its hierarchy are reused for all views.
+        /// </summary>
+        public static MeshVisibilityReport AnalyzeAllDirections(IReadOnlyList<MeshVisibilitySurface> surfaces,
+            Bounds bounds, bool twoSided, int samplesPerTriangle, int directionResolution,
+            Func<float, bool> cancel = null)
+        {
+            IReadOnlyList<Vector3> directions = MeshVisibilityDirections.Create(directionResolution);
+            var views = new MeshVisibilityView[directions.Count];
+            for (int i = 0; i < views.Length; i++)
+            {
+                views[i] = MeshVisibilityView.FromDirection(bounds, directions[i]);
+                ValidateView(ref views[i]);
+            }
+            return AnalyzeViews(surfaces, views, twoSided, samplesPerTriangle, directions, cancel);
+        }
+
+        private static void ValidateView(ref MeshVisibilityView view)
+        {
             if (!MeshVisibilityView.IsFinite(view.Position) || !MeshVisibilityView.IsFinite(view.Forward)
                 || view.Forward.sqrMagnitude < 1e-12f || !MeshVisibilityView.IsFinite(view.NearClip)
                 || (!view.Orthographic && view.NearClip < 0f))
@@ -39,14 +63,25 @@ namespace LuticaLab.TextureCocktail
                 if (!MeshVisibilityView.IsFinite(view.WorldToClip[i]))
                     throw new ArgumentException("View projection must be finite.", nameof(view));
             view.Forward.Normalize();
+        }
+
+        private static MeshVisibilityReport AnalyzeViews(IReadOnlyList<MeshVisibilitySurface> surfaces,
+            IReadOnlyList<MeshVisibilityView> views, bool twoSided, int samplesPerTriangle,
+            IReadOnlyList<Vector3> checkedDirections, Func<float, bool> cancel)
+        {
+            if (surfaces == null) throw new ArgumentNullException(nameof(surfaces));
+            if (samplesPerTriangle != 1 && samplesPerTriangle != 4 && samplesPerTriangle != 7)
+                throw new ArgumentOutOfRangeException(nameof(samplesPerTriangle), "Choose 1, 4 or 7 samples.");
+            float lastProgress = 0f;
             Action<float> progress = value =>
             {
-                if (cancel != null && cancel(Mathf.Clamp01(value))) throw new OperationCanceledException();
+                // View-boundary and triangle-count formulas can round differently.
+                lastProgress = Mathf.Max(lastProgress, Mathf.Clamp01(value));
+                if (cancel != null && cancel(lastProgress)) throw new OperationCanceledException();
             };
             progress(0f);
 
             long totalTriangles = 0;
-            long targetTriangles = 0;
             var results = new List<MeshVisibilitySurfaceResult>();
             var resultBySurface = new MeshVisibilitySurfaceResult[surfaces.Count];
             for (int s = 0; s < surfaces.Count; s++)
@@ -58,42 +93,94 @@ namespace LuticaLab.TextureCocktail
                 int count = surface.Triangles.Length / 3;
                 totalTriangles += count;
                 if (!surface.IsTarget) continue;
-                var result = new MeshVisibilitySurfaceResult(surface, new MeshVisibilityState[count]);
+                var states = new MeshVisibilityState[count];
+                for (int t = 0; t < count; t++) states[t] = MeshVisibilityState.Degenerate;
+                var result = new MeshVisibilitySurfaceResult(surface, states);
                 results.Add(result);
                 resultBySurface[s] = result;
-                targetTriangles += count;
             }
 
             var triangles = new List<Triangle>();
+            var targets = new List<Triangle>();
             long collected = 0;
             for (int s = 0; s < surfaces.Count; s++)
             {
                 MeshVisibilitySurface surface = surfaces[s];
                 for (int t = 0; t < surface.Triangles.Length / 3; t++)
                 {
-                    if (TryCreateTriangle(surface, s, t, out Triangle triangle)) triangles.Add(triangle);
+                    if (TryCreateTriangle(surface, s, t, out Triangle triangle))
+                    {
+                        triangles.Add(triangle);
+                        if (surface.IsTarget) targets.Add(triangle);
+                    }
                     if ((++collected & 1023) == 0) progress(0.2f * collected / Math.Max(1L, totalTriangles));
                 }
             }
             progress(0.2f);
             var bvh = new TriangleHierarchy(triangles.ToArray(), progress);
             progress(0.45f);
+
+            bool multiView = checkedDirections != null;
+            var evidence = multiView ? new VisibilityEvidence[targets.Count] : null;
+            var summaries = new List<MeshVisibilityDirectionSummary>();
             int samplesTested = 0;
             long classified = 0;
-            for (int s = 0; s < surfaces.Count; s++)
+            long classificationCount = (long)targets.Count * views.Count;
+            for (int v = 0; v < views.Count; v++)
             {
-                MeshVisibilitySurfaceResult result = resultBySurface[s];
-                if (result == null) continue;
-                for (int t = 0; t < result.States.Length; t++)
+                int visibleTriangles = 0;
+                for (int t = 0; t < targets.Count; t++)
                 {
-                    result.States[t] = TryCreateTriangle(surfaces[s], s, t, out Triangle triangle)
-                        ? Classify(triangle, view, twoSided, samplesPerTriangle, bvh, ref samplesTested)
-                        : MeshVisibilityState.Degenerate;
-                    if ((++classified & 127) == 0) progress(0.45f + 0.55f * classified / Math.Max(1L, targetTriangles));
+                    Triangle triangle = targets[t];
+                    MeshVisibilityState state = Classify(triangle, views[v], twoSided,
+                        samplesPerTriangle, bvh, ref samplesTested);
+                    if (state == MeshVisibilityState.Visible) visibleTriangles++;
+                    if (multiView) evidence[t] |= ToEvidence(state);
+                    else resultBySurface[triangle.SurfaceIndex].States[triangle.TriangleIndex] = state;
+                    if ((++classified & 127) == 0)
+                        progress(0.45f + 0.55f * classified / Math.Max(1L, classificationCount));
+                }
+                if (multiView)
+                    summaries.Add(new MeshVisibilityDirectionSummary(checkedDirections[v], visibleTriangles));
+                // Poll at every view boundary too, including small or empty meshes.
+                progress(0.45f + 0.55f * (v + 1) / views.Count);
+            }
+            if (multiView)
+            {
+                for (int t = 0; t < targets.Count; t++)
+                {
+                    Triangle triangle = targets[t];
+                    resultBySurface[triangle.SurfaceIndex].States[triangle.TriangleIndex] = Aggregate(evidence[t]);
                 }
             }
             progress(1f);
-            return new MeshVisibilityReport(results.AsReadOnly(), samplesTested);
+            return multiView
+                ? new MeshVisibilityReport(results.AsReadOnly(), samplesTested, checkedDirections, summaries.AsReadOnly())
+                : new MeshVisibilityReport(results.AsReadOnly(), samplesTested);
+        }
+
+        [Flags]
+        private enum VisibilityEvidence { None = 0, Visible = 1, Occluded = 2, BackFacing = 4, OutsideView = 8 }
+
+        private static VisibilityEvidence ToEvidence(MeshVisibilityState state)
+        {
+            switch (state)
+            {
+                case MeshVisibilityState.Visible: return VisibilityEvidence.Visible;
+                case MeshVisibilityState.Occluded: return VisibilityEvidence.Occluded;
+                case MeshVisibilityState.BackFacing: return VisibilityEvidence.BackFacing;
+                case MeshVisibilityState.OutsideView: return VisibilityEvidence.OutsideView;
+                default: return VisibilityEvidence.None;
+            }
+        }
+
+        private static MeshVisibilityState Aggregate(VisibilityEvidence evidence)
+        {
+            if ((evidence & VisibilityEvidence.Visible) != 0) return MeshVisibilityState.Visible;
+            if ((evidence & VisibilityEvidence.OutsideView) != 0) return MeshVisibilityState.OutsideView;
+            if ((evidence & VisibilityEvidence.Occluded) != 0) return MeshVisibilityState.HiddenFromAllDirections;
+            return (evidence & VisibilityEvidence.BackFacing) != 0
+                ? MeshVisibilityState.BackFacing : MeshVisibilityState.Degenerate;
         }
 
         private static MeshVisibilityState Classify(Triangle triangle, MeshVisibilityView view, bool twoSided,
@@ -107,7 +194,7 @@ namespace LuticaLab.TextureCocktail
             {
                 Vector3 weights = Samples[i];
                 Vector3 sample = triangle.A + triangle.Edge1 * weights.y + triangle.Edge2 * weights.z;
-                tested++;
+                tested = checked(tested + 1);
                 Vector4 clip = view.WorldToClip * new Vector4(sample.x, sample.y, sample.z, 1f);
                 float limit = clip.w * 1.00001f;
                 if (clip.w <= 0f || clip.x < -limit || clip.x > limit || clip.y < -limit || clip.y > limit

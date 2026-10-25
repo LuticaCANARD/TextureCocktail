@@ -22,6 +22,14 @@ public static class MeshVisibilityRegressionChecks
         Check("self-occlusion excludes only the sampled triangle", TestSelfOcclusion, ref passed);
         Check("thin triangles and degenerate geometry", TestThinAndDegenerate, ref passed);
         Check("cancellation and invalid view/sample inputs", TestCancellation, ref passed);
+        Check("spherical direction coverage includes nested XYZ and diagonal rays", TestDirectionCoverage, ref passed);
+        Check("all-direction candidates are sealed triangles and internal shells", TestAllDirectionsHidden, ref passed);
+        Check("any visible direction preserves exposed cube and back-side faces", TestAllDirectionsExposure, ref passed);
+        Check("vertical rays preserve a face visible only through the top", TestAllDirectionsTopOpening, ref passed);
+        Check("diagonal rays reveal a face missed by all six axis views", TestAllDirectionsDiagonalOpening, ref passed);
+        Check("increasing direction density cannot introduce hidden candidates", TestAllDirectionsDensity, ref passed);
+        Check("multi-view cancellation preserves geometry and monotonic progress", TestAllDirectionsCancellation, ref passed);
+        Check("multi-view guards and single-view report compatibility", TestAllDirectionsGuards, ref passed);
         Check("static capture transforms, blockers and preview exclusions", TestStaticCapture, ref passed);
         Check("current skinned pose applies renderer scale once", TestSkinnedCapture, ref passed);
         Check("Read/Write-disabled mesh capture without source changes", TestReadOnlyCapture, ref passed);
@@ -232,6 +240,257 @@ public static class MeshVisibilityRegressionChecks
         Require(lastProgress == 1, "Successful analysis must report completion.");
     }
 
+    private static void TestDirectionCoverage()
+    {
+        IReadOnlyList<Vector3> previous = null;
+        int[] resolutions = { 1, 2, 4 };
+        int[] expectedCounts = { 26, 98, 386 };
+        Vector3[] axes = { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
+        for (int density = 0; density < resolutions.Length; density++)
+        {
+            var directions = MeshVisibilityDirections.Create(resolutions[density]);
+            Require(directions.Count == expectedCounts[density], "The spherical cube grid must retain its documented direction count.");
+            foreach (Vector3 axis in axes)
+                Require(ContainsDirection(directions, axis), "Every density must inspect both signs of all three axes: " + axis);
+            Require(ContainsDirection(directions, Vector3.one.normalized), "The coarsest coverage must already include corner directions.");
+            for (int i = 0; i < directions.Count; i++)
+            {
+                Vector3 direction = directions[i];
+                Require(!float.IsNaN(direction.x) && !float.IsNaN(direction.y) && !float.IsNaN(direction.z)
+                    && !float.IsInfinity(direction.x) && !float.IsInfinity(direction.y) && !float.IsInfinity(direction.z),
+                    "Generated viewing directions must be finite.");
+                Require(Mathf.Abs(direction.sqrMagnitude - 1f) < 0.00001f, "Viewing directions must be normalized.");
+                Require(ContainsDirection(directions, -direction), "Each ray must have its opposite viewing direction.");
+                for (int j = 0; j < i; j++)
+                    Require((direction - directions[j]).sqrMagnitude > 0.00000001f, "The direction grid must not duplicate views.");
+            }
+            if (previous != null)
+                foreach (Vector3 direction in previous)
+                    Require(ContainsDirection(directions, direction), "A denser grid must keep every previously checked direction.");
+            previous = directions;
+        }
+    }
+
+    private static void TestAllDirectionsHidden()
+    {
+        var internalFace = Triangle(Vector3.zero, 0.1f);
+        var internalShell = Cube(Vector3.zero, 0.5f);
+        var cover = Cube(Vector3.zero, 2f, false);
+        var bounds = new Bounds(Vector3.zero, Vector3.one * 6f);
+        foreach (int samples in new[] { 1, 4, 7 })
+        {
+            var report = MeshVisibilityAnalyzer.AnalyzeAllDirections(new[] { internalFace, internalShell, cover }, bounds, false, samples, 1);
+            Require(report.IsMultiView && report.DirectionsTested == 26, "The report must identify every completed direction.");
+            Require(report.CheckedDirections.Count == 26 && report.DirectionSummaries.Count == 26,
+                "The audit report must retain one summary for each checked direction.");
+            Require(report.Surfaces.Count == 2, "An unselected shell must occlude without becoming a target result.");
+            RequireAllStates(report, internalFace, MeshVisibilityState.HiddenFromAllDirections,
+                "A fully enclosed face must be hidden from every checked direction.");
+            RequireAllStates(report, internalShell, MeshVisibilityState.HiddenFromAllDirections,
+                "Every triangle of a fully enclosed shell must be a persistent hidden candidate.");
+            for (int i = 0; i < report.DirectionSummaries.Count; i++)
+            {
+                RequireNear(report.DirectionSummaries[i].Forward, report.CheckedDirections[i], "Direction summary order");
+                Require(report.DirectionSummaries[i].VisibleTriangles == 0,
+                    "External blockers must not count as visible selected triangles in direction summaries.");
+            }
+            Require(report.SamplesTested > 0, "Multi-view reports must count the rays evaluated for enclosed targets.");
+        }
+    }
+
+    private static void TestAllDirectionsExposure()
+    {
+        var bounds = new Bounds(Vector3.zero, Vector3.one * 8f);
+        var exposedCube = Cube(Vector3.zero, 1f);
+        foreach (bool twoSided in new[] { false, true })
+        {
+            var report = MeshVisibilityAnalyzer.AnalyzeAllDirections(new[] { exposedCube }, bounds, twoSided, 7, 1);
+            RequireAllStates(report, exposedCube, MeshVisibilityState.Visible,
+                "Every outward face of an exposed cube must be visible from at least one direction.");
+        }
+        var face = Triangle(Vector3.zero, 0.2f);
+        var frontCover = Triangle(Vector3.back, 2f, false);
+        var frontView = MeshVisibilityView.FromDirection(bounds, Vector3.forward);
+        Require(State(MeshVisibilityAnalyzer.Analyze(new[] { face, frontCover }, frontView, true, 7), face)
+            == MeshVisibilityState.Occluded, "The back-side fixture must first be hidden in its front view.");
+        var allViews = MeshVisibilityAnalyzer.AnalyzeAllDirections(new[] { face, frontCover }, bounds, true, 7, 1);
+        Require(State(allViews, face) == MeshVisibilityState.Visible,
+            "A face visible from behind must not stay hidden merely because the front view is occluded.");
+        Require(State(MeshVisibilityAnalyzer.AnalyzeAllDirections(new[] { face }, bounds, false, 7, 1), face)
+            == MeshVisibilityState.Visible, "An exposed single-sided face must survive its other back-facing views.");
+        var degenerate = new MeshVisibilitySurface(null, new[] { Vector3.zero, Vector3.right, Vector3.right * 2 }, new[] { 0, 1, 2 });
+        var invalid = new MeshVisibilitySurface(null, new[] { Vector3.zero }, new[] { 0, 1, 2 });
+        var reportWithInvalid = MeshVisibilityAnalyzer.AnalyzeAllDirections(new[] { degenerate, invalid }, bounds, false, 7, 1);
+        Require(State(reportWithInvalid, degenerate) == MeshVisibilityState.Degenerate
+            && State(reportWithInvalid, invalid) == MeshVisibilityState.Degenerate,
+            "Invalid or zero-area geometry must never be promoted to hidden candidates.");
+    }
+
+    private static void TestAllDirectionsTopOpening()
+    {
+        // Four walls and a floor hide the target from horizontal/bottom rays; only the open roof exposes it.
+        var walls = Cube(Vector3.zero, 2f, false);
+        var withoutRoof = new List<int>();
+        for (int i = 0; i < walls.Triangles.Length; i += 3)
+        {
+            bool onRoof = true;
+            for (int j = 0; j < 3; j++) onRoof &= walls.Vertices[walls.Triangles[i + j]].y > 0;
+            if (!onRoof) for (int j = 0; j < 3; j++) withoutRoof.Add(walls.Triangles[i + j]);
+        }
+        walls.Triangles = withoutRoof.ToArray();
+        var target = OrientedTriangle(Vector3.zero, 0.15f, Vector3.up);
+        var bounds = new Bounds(Vector3.zero, Vector3.one * 6f);
+        var surfaces = new[] { target, walls };
+        foreach (Vector3 direction in new[] { Vector3.right, Vector3.left, Vector3.up, Vector3.forward, Vector3.back })
+            Require(State(MeshVisibilityAnalyzer.Analyze(surfaces, MeshVisibilityView.FromDirection(bounds, direction), true, 7), target)
+                != MeshVisibilityState.Visible, "The roof fixture must not expose the interior from any of its five closed axes.");
+        Require(State(MeshVisibilityAnalyzer.Analyze(surfaces, MeshVisibilityView.FromDirection(bounds, Vector3.down), true, 7), target)
+            == MeshVisibilityState.Visible, "A ray from above must see the interior through the open roof.");
+        var report = MeshVisibilityAnalyzer.AnalyzeAllDirections(surfaces, bounds, true, 7, 1);
+        Require(State(report, target) == MeshVisibilityState.Visible, "Full coverage must include elevation, not only horizontal yaw.");
+        bool foundTop = false;
+        foreach (var summary in report.DirectionSummaries)
+            if ((summary.Forward - Vector3.down).sqrMagnitude < 0.00000001f)
+            {
+                foundTop = true;
+                Require(summary.VisibleTriangles == 1, "The -Y audit row must show the face revealed from above.");
+            }
+        Require(foundTop, "The report must expose its -Y light inspection explicitly.");
+    }
+
+    private static void TestAllDirectionsDiagonalOpening()
+    {
+        // Six small square shutters block the axial sight lines but leave their corner gaps open.
+        // An axis-only pass would incorrectly mark this face as permanently hidden.
+        var target = OrientedTriangle(Vector3.zero, 0.1f, -Vector3.one.normalized);
+        var surfaces = new List<MeshVisibilitySurface> { target };
+        Vector3[] axes = { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
+        foreach (Vector3 axis in axes) surfaces.Add(Square(axis * 2f, 0.65f, axis));
+        var bounds = new Bounds(Vector3.zero, Vector3.one * 6f);
+        foreach (Vector3 axis in axes)
+            Require(State(MeshVisibilityAnalyzer.Analyze(surfaces, MeshVisibilityView.FromDirection(bounds, axis), true, 7), target)
+                == MeshVisibilityState.Occluded, "Each axial shutter must hide every target sample along its axis.");
+        Vector3 diagonal = Vector3.one.normalized;
+        Require(State(MeshVisibilityAnalyzer.Analyze(surfaces, MeshVisibilityView.FromDirection(bounds, diagonal), true, 7), target)
+            == MeshVisibilityState.Visible, "The corner-gap fixture must have an actual diagonal line of sight.");
+        var report = MeshVisibilityAnalyzer.AnalyzeAllDirections(surfaces, bounds, true, 7, 1);
+        Require(State(report, target) == MeshVisibilityState.Visible,
+            "A triangle revealed by a diagonal must not be classified as hidden from all directions.");
+        bool foundDiagonal = false;
+        foreach (var summary in report.DirectionSummaries)
+            if ((summary.Forward - diagonal).sqrMagnitude < 0.00000001f)
+            {
+                foundDiagonal = true;
+                Require(summary.VisibleTriangles == 1, "The diagonal audit row must include its revealed target face.");
+            }
+        Require(foundDiagonal, "Checked-direction summaries must include the diagonal that disproves occlusion.");
+    }
+
+    private static void TestAllDirectionsDensity()
+    {
+        var enclosed = Triangle(Vector3.zero, 0.1f);
+        var enclosingBlocker = Cube(Vector3.zero, 2f, false);
+        var exposed = Triangle(Vector3.right * 6f, 0.2f);
+        var frontHidden = Triangle(Vector3.right * 12f, 0.2f);
+        var frontBlocker = Triangle(Vector3.right * 12f + Vector3.back, 2f, false);
+        var surfaces = new[] { enclosed, enclosingBlocker, exposed, frontHidden, frontBlocker };
+        var bounds = new Bounds(Vector3.right * 6f, Vector3.one * 30f);
+        MeshVisibilityReport previous = null;
+        foreach (int resolution in new[] { 1, 2, 4 })
+        {
+            var report = MeshVisibilityAnalyzer.AnalyzeAllDirections(surfaces, bounds, true, 7, resolution);
+            Require(State(report, enclosed) == MeshVisibilityState.HiddenFromAllDirections,
+                "Enclosed geometry must remain hidden when more directions are inspected.");
+            Require(State(report, exposed) == MeshVisibilityState.Visible && State(report, frontHidden) == MeshVisibilityState.Visible,
+                "Increasing inspection density must preserve any earlier evidence of visibility.");
+            if (previous != null)
+                foreach (var result in report.Surfaces)
+                    if (result.States[0] == MeshVisibilityState.HiddenFromAllDirections)
+                        Require(State(previous, result.Surface) == MeshVisibilityState.HiddenFromAllDirections,
+                            "A denser nested view set may remove hidden candidates, but must never create them.");
+            previous = report;
+        }
+    }
+
+    private static void TestAllDirectionsCancellation()
+    {
+        var target = Cube(Vector3.zero, 0.5f);
+        var blocker = Cube(Vector3.zero, 2f, false);
+        var surfaces = new[] { target, blocker };
+        var originalVertices = new Vector3[surfaces.Length][];
+        var originalTriangles = new int[surfaces.Length][];
+        for (int i = 0; i < surfaces.Length; i++)
+        {
+            originalVertices[i] = (Vector3[])surfaces[i].Vertices.Clone();
+            originalTriangles[i] = (int[])surfaces[i].Triangles.Clone();
+        }
+        var bounds = new Bounds(Vector3.zero, Vector3.one * 6f);
+        MeshVisibilityReport partial = null;
+        bool canceled = false;
+        float lastProgress = -1;
+        int updates = 0;
+        try
+        {
+            partial = MeshVisibilityAnalyzer.AnalyzeAllDirections(surfaces, bounds, false, 7, 2, progress =>
+            {
+                Require(progress >= lastProgress && progress >= 0 && progress <= 1,
+                    "Multi-view progress must stay monotonic across preparation and direction boundaries.");
+                lastProgress = progress;
+                updates++;
+                return progress >= 0.72f;
+            });
+        }
+        catch (OperationCanceledException) { canceled = true; }
+        Require(canceled && partial == null && updates > 1 && lastProgress >= 0.72f,
+            "Cancellation partway through multiple views must throw without publishing a partial candidate report.");
+        for (int i = 0; i < surfaces.Length; i++)
+        {
+            for (int j = 0; j < originalVertices[i].Length; j++)
+                Require(originalVertices[i][j] == surfaces[i].Vertices[j], "Canceled inspection must preserve target and blocker vertices.");
+            for (int j = 0; j < originalTriangles[i].Length; j++)
+                Require(originalTriangles[i][j] == surfaces[i].Triangles[j], "Canceled inspection must preserve target and blocker triangle indices.");
+        }
+        Require(target.IsTarget && !blocker.IsTarget, "Canceled inspection must preserve target membership.");
+        lastProgress = -1;
+        MeshVisibilityAnalyzer.AnalyzeAllDirections(surfaces, bounds, false, 4, 1, progress =>
+        {
+            Require(progress >= lastProgress && progress >= 0 && progress <= 1,
+                "Successful inspection must report monotonic progress over the entire view set.");
+            lastProgress = progress;
+            return false;
+        });
+        Require(lastProgress == 1, "Successful all-direction analysis must report final completion.");
+    }
+
+    private static void TestAllDirectionsGuards()
+    {
+        var surface = Triangle(Vector3.zero, 1f);
+        var bounds = new Bounds(Vector3.zero, Vector3.one * 4f);
+        foreach (int resolution in new[] { -1, 0, 3, int.MaxValue })
+        {
+            RequireThrows<ArgumentOutOfRangeException>(() => MeshVisibilityDirections.Create(resolution),
+                "Unsupported direction densities must be rejected before allocating a potentially enormous grid.");
+            RequireThrows<ArgumentOutOfRangeException>(() => MeshVisibilityAnalyzer.AnalyzeAllDirections(new[] { surface }, bounds, false, 7, resolution),
+                "The analyzer must reject unsupported inspection densities.");
+        }
+        RequireThrows<ArgumentOutOfRangeException>(() => MeshVisibilityAnalyzer.AnalyzeAllDirections(new[] { surface }, bounds, false, 2, 1),
+            "Multi-view analysis must retain the supported sample-count contract.");
+        RequireThrows<ArgumentException>(() => MeshVisibilityAnalyzer.AnalyzeAllDirections(new[] { surface },
+            new Bounds(new Vector3(float.NaN, 0, 0), Vector3.one), false, 7, 1),
+            "Nonfinite directional bounds must be rejected explicitly.");
+        var single = MeshVisibilityAnalyzer.Analyze(new[] { surface }, MeshVisibilityView.FromDirection(bounds, Vector3.forward), false, 7);
+        Require(State(single, surface) == MeshVisibilityState.Visible && !single.IsMultiView && single.DirectionsTested == 0
+            && single.CheckedDirections.Count == 0 && single.DirectionSummaries.Count == 0,
+            "Single-view callers must retain their classification and avoid claiming a spherical inspection.");
+        Require((int)MeshVisibilityState.Visible == 0 && (int)MeshVisibilityState.Occluded == 1
+            && (int)MeshVisibilityState.BackFacing == 2 && (int)MeshVisibilityState.OutsideView == 3
+            && (int)MeshVisibilityState.Degenerate == 4,
+            "Adding the all-direction candidate state must preserve existing state ordinals.");
+        var legacyReport = new MeshVisibilityReport(single.Surfaces, single.SamplesTested);
+        Require(!legacyReport.IsMultiView && legacyReport.CheckedDirections.Count == 0 && legacyReport.DirectionSummaries.Count == 0,
+            "The legacy report constructor must remain usable without multi-view metadata.");
+    }
+
     private static void TestStaticCapture()
     {
         using (var fixture = new SceneFixture())
@@ -356,17 +615,18 @@ public static class MeshVisibilityRegressionChecks
         Require(shader != null && shader.isSupported, "The real candidate overlay shader must compile on this graphics device.");
         var inputMesh = new Mesh { name = "Visibility overlay source", hideFlags = HideFlags.HideAndDontSave };
         var vertices = new List<Vector3>();
-        for (int i = 0; i < 3; i++) vertices.AddRange(Triangle(new Vector3(i * 3, 0, 0), 1).Vertices);
+        for (int i = 0; i < 4; i++) vertices.AddRange(Triangle(new Vector3(i * 3, 0, 0), 1).Vertices);
         inputMesh.vertices = vertices.ToArray();
-        inputMesh.triangles = new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+        inputMesh.triangles = new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
         var surface = new MeshVisibilitySurface(null, inputMesh.vertices, inputMesh.triangles);
         var report = new MeshVisibilityReport(new[]
         {
             new MeshVisibilitySurfaceResult(surface, new[]
             {
-                MeshVisibilityState.Visible, MeshVisibilityState.Occluded, MeshVisibilityState.OutsideView
+                MeshVisibilityState.Visible, MeshVisibilityState.Occluded, MeshVisibilityState.OutsideView,
+                MeshVisibilityState.HiddenFromAllDirections
             })
-        }, 3);
+        }, 4);
         var overlay = new MeshVisibilityOverlay();
         var ownedMeshes = new List<Mesh>();
         var ownedMaterials = new List<Material>();
@@ -377,16 +637,17 @@ public static class MeshVisibilityRegressionChecks
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
             var groups = (System.Collections.IList)typeof(MeshVisibilityOverlay).GetField("_groups", flags).GetValue(overlay);
             var materials = (System.Collections.IDictionary)typeof(MeshVisibilityOverlay).GetField("_materials", flags).GetValue(overlay);
-            Require(groups.Count == 2, "Only the Occluded and OutsideView triangles should produce candidate groups.");
+            Require(groups.Count == 3, "Occluded, OutsideView and HiddenFromAllDirections must produce separate candidate groups.");
             foreach (object group in groups)
             {
                 Type type = group.GetType();
                 var state = (MeshVisibilityState)type.GetField("State", flags).GetValue(group);
                 var mesh = (Mesh)type.GetField("Mesh", flags).GetValue(group);
                 ownedMeshes.Add(mesh);
-                Require(state == MeshVisibilityState.Occluded || state == MeshVisibilityState.OutsideView,
+                Require(state == MeshVisibilityState.Occluded || state == MeshVisibilityState.OutsideView
+                    || state == MeshVisibilityState.HiddenFromAllDirections,
                     "Visible triangles must not enter candidate overlay groups.");
-                int offset = state == MeshVisibilityState.Occluded ? 3 : 6;
+                int offset = state == MeshVisibilityState.Occluded ? 3 : state == MeshVisibilityState.OutsideView ? 6 : 9;
                 Require(mesh.triangles.Length == 3 && mesh.triangles[0] == offset
                     && mesh.triangles[1] == offset + 1 && mesh.triangles[2] == offset + 2,
                     "Candidate groups must preserve the original triangle indices.");
@@ -397,13 +658,17 @@ public static class MeshVisibilityRegressionChecks
                 ownedMaterials.Add(material);
             }
             Require(ownedMaterials.Count > 0, "The overlay must own render materials.");
+            var hiddenMaterial = materials[MeshVisibilityState.HiddenFromAllDirections] as Material;
+            Color hiddenColor = hiddenMaterial != null ? hiddenMaterial.GetColor("_Color") : Color.clear;
+            Require(hiddenColor.a > 0 && hiddenColor.r > hiddenColor.g && hiddenColor.b > hiddenColor.g,
+                "Persistent hidden candidates must have their own visible purple material.");
             overlay.Dispose();
             Require(!overlay.IsAvailable && groups.Count == 0 && materials.Count == 0, "Dispose must clear overlay state.");
             foreach (Mesh mesh in ownedMeshes) Require(mesh == null, "Dispose must destroy each generated candidate mesh.");
             foreach (Material material in ownedMaterials) Require(material == null, "Dispose must destroy each generated overlay material.");
-            Require(inputMesh != null && inputMesh.vertexCount == 9 && inputMesh.triangles.Length == 9,
+            Require(inputMesh != null && inputMesh.vertexCount == 12 && inputMesh.triangles.Length == 12,
                 "Overlay disposal must leave the source mesh alive and unchanged.");
-            for (int i = 0; i < 9; i++) Require(surface.Triangles[i] == i, "Overlay construction must not mutate source index arrays.");
+            for (int i = 0; i < 12; i++) Require(surface.Triangles[i] == i, "Overlay construction must not mutate source index arrays.");
         }
         finally
         {
@@ -417,6 +682,68 @@ public static class MeshVisibilityRegressionChecks
         {
             center + new Vector3(-size, -size, 0), center + new Vector3(0, size, 0), center + new Vector3(size, -size, 0)
         }, new[] { 0, 1, 2 }, target);
+
+    private static MeshVisibilitySurface OrientedTriangle(Vector3 center, float size, Vector3 normal)
+    {
+        var result = Triangle(Vector3.zero, size);
+        Quaternion rotation = Quaternion.FromToRotation(Vector3.back, normal);
+        for (int i = 0; i < result.Vertices.Length; i++) result.Vertices[i] = center + rotation * result.Vertices[i];
+        return result;
+    }
+
+    private static MeshVisibilitySurface Square(Vector3 center, float halfSize, Vector3 normal)
+    {
+        Quaternion rotation = Quaternion.FromToRotation(Vector3.forward, normal);
+        return new MeshVisibilitySurface(null, new[]
+        {
+            center + rotation * new Vector3(-halfSize, -halfSize, 0),
+            center + rotation * new Vector3(halfSize, -halfSize, 0),
+            center + rotation * new Vector3(halfSize, halfSize, 0),
+            center + rotation * new Vector3(-halfSize, halfSize, 0)
+        }, new[] { 0, 1, 2, 0, 2, 3 }, false);
+    }
+
+    private static MeshVisibilitySurface Cube(Vector3 center, float halfSize, bool target = true)
+    {
+        var corners = new[]
+        {
+            new Vector3(-1, -1, -1), new Vector3(1, -1, -1), new Vector3(1, 1, -1), new Vector3(-1, 1, -1),
+            new Vector3(-1, -1, 1), new Vector3(1, -1, 1), new Vector3(1, 1, 1), new Vector3(-1, 1, 1)
+        };
+        for (int i = 0; i < corners.Length; i++) corners[i] = center + corners[i] * halfSize;
+        return new MeshVisibilitySurface(null, corners, new[]
+        {
+            0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7,
+            0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2,
+            0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5
+        }, target);
+    }
+
+    private static bool ContainsDirection(IReadOnlyList<Vector3> directions, Vector3 expected)
+    {
+        foreach (Vector3 direction in directions)
+            if ((direction - expected).sqrMagnitude < 0.00000001f) return true;
+        return false;
+    }
+
+    private static void RequireAllStates(MeshVisibilityReport report, MeshVisibilitySurface surface, MeshVisibilityState expected, string message)
+    {
+        foreach (var result in report.Surfaces)
+        {
+            if (!ReferenceEquals(result.Surface, surface)) continue;
+            Require(result.States.Length == surface.Triangles.Length / 3, "Every source triangle must have a result state.");
+            foreach (var state in result.States) Require(state == expected, message + " Actual state: " + state);
+            return;
+        }
+        throw new InvalidOperationException("Expected surface is missing from the visibility report.");
+    }
+
+    private static void RequireThrows<T>(Action action, string message) where T : Exception
+    {
+        try { action(); }
+        catch (T) { return; }
+        throw new InvalidOperationException("Mesh visibility regression failed: " + message);
+    }
 
     private static MeshVisibilityState State(MeshVisibilityReport report, MeshVisibilitySurface surface)
     {

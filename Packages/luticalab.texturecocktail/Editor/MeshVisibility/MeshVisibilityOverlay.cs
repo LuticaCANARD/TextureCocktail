@@ -17,7 +17,8 @@ namespace LuticaLab.TextureCocktail
         private static readonly int ZTestProperty = Shader.PropertyToID("_ZTest");
         private static readonly MeshVisibilityState[] CandidateStates =
         {
-            MeshVisibilityState.Occluded, MeshVisibilityState.BackFacing, MeshVisibilityState.OutsideView
+            MeshVisibilityState.Occluded, MeshVisibilityState.BackFacing, MeshVisibilityState.OutsideView,
+            MeshVisibilityState.HiddenFromAllDirections
         };
 
         private sealed class Group
@@ -73,11 +74,22 @@ namespace LuticaLab.TextureCocktail
 
         internal void Draw(Camera camera, bool occluded, bool backFacing, bool outsideView, bool xray)
         {
+            DrawGroups(camera, occluded, backFacing, outsideView, false, xray);
+        }
+
+        internal void DrawHiddenFromAllDirections(Camera camera, bool show, bool xray)
+        {
+            DrawGroups(camera, false, false, false, show, xray);
+        }
+
+        private void DrawGroups(Camera camera, bool occluded, bool backFacing, bool outsideView, bool hiddenFromAllDirections, bool xray)
+        {
             if (!IsAvailable || camera == null) return;
             foreach (var group in _groups)
             {
                 bool show = group.State == MeshVisibilityState.Occluded ? occluded
-                    : group.State == MeshVisibilityState.BackFacing ? backFacing : outsideView;
+                    : group.State == MeshVisibilityState.BackFacing ? backFacing
+                    : group.State == MeshVisibilityState.OutsideView ? outsideView : hiddenFromAllDirections;
                 if (!show) continue;
                 Material material = _materials[group.State];
                 material.SetInt(ZTestProperty, (int)(xray ? CompareFunction.Always : CompareFunction.LessEqual));
@@ -89,6 +101,7 @@ namespace LuticaLab.TextureCocktail
         {
             switch (state)
             {
+                case MeshVisibilityState.HiddenFromAllDirections: return new Color(0.85f, 0.2f, 1f, 0.6f);
                 case MeshVisibilityState.Occluded: return new Color(1f, 0.2f, 0.2f, 0.5f);
                 case MeshVisibilityState.BackFacing: return new Color(1f, 0.65f, 0.1f, 0.5f);
                 case MeshVisibilityState.OutsideView: return new Color(0.2f, 0.6f, 1f, 0.45f);
