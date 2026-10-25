@@ -5,13 +5,13 @@ env:
   pathToCi: ci
   
 on: 
+  # Refresh manually from main after removing or unpublishing a release.
   workflow_dispatch:
   workflow_run:
     workflows: [Build Release]
+    branches: [main]
     types:
       - completed
-  release:
-     types: [published, created, edited, unpublished, deleted, released]
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
@@ -19,16 +19,21 @@ permissions:
   pages: write
   id-token: write
   
-# Allow one concurrent deployment
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
 jobs:
   
   # Build the VPM Listing Website and deploy to GitHub Pages
   build-listing:
     name: build-listing
+    # Pages accepts main, while release events run on tag refs. Failed release
+    # builds and manual runs from other refs must never enter deployment.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.workflow_run.conclusion == 'success')
+    concurrency:
+      # Keep old tag workflows using the former "pages" group isolated.
+      group: pages-listing-main
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
